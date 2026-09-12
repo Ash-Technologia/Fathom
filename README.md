@@ -629,6 +629,45 @@ Fathom provides deep dependency insights without acting as a package manager or 
   - Completely silent offline fallback when network is unavailable.
   - Zero repository code transmission or token leakage.
 
+## 🔌 Plugin Architecture
+
+Fathom features a stable, sandboxed plugin system enabling developers to extend Fathom with custom rules and analyzers without modifying core engine code:
+
+```text
+Fathom Core
+   ↓
+Plugin Registry
+   ├── @fathom/plugin-react (Built-in)
+   ├── @fathom/plugin-docker
+   └── Community Plugins
+```
+
+### Stable Plugin API:
+- `PluginManifest`: Defines package name, semver version, description, author, and declared rules.
+- `PluginRule`: Extends Fathom rules with `recommendation`, `confidence`, `autoFixable`, and reference URLs.
+- `PluginAnalyzer`: Custom analyzer contract (`id`, `name`, `category`, `description`, `analyze(context: PluginContext)`).
+- `PluginContext`: Read-only, sandboxed context enforcing path traversal protections, bounded file reads (1MB limit), and structured finding creation.
+- `PluginRegistry`: Lifecycle manager, schema validator, and error boundary wrapper.
+
+### Example Internal Plugin: `@fathom/plugin-react`
+Built into Fathom as a reference implementation:
+- `REACT-001` (Security / medium): `dangerouslySetInnerHTML` usage without sanitization.
+- `REACT-002` (Quality / low): Array index used as key or missing key in list render.
+- `REACT-003` (Quality / medium): Direct React state mutation (`this.state.x = ...`).
+
+### Enabling Plugins via `.fathom.json`:
+```json
+{
+  "version": 1,
+  "plugins": [
+    "@fathom/plugin-react"
+  ],
+  "rules": {
+    "REACT-001": "warning"
+  }
+}
+```
+
 ---
 
 ## 🛡️ Security Model

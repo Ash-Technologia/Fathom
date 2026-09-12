@@ -25,6 +25,9 @@ import { ruleRegistry } from '../rules/registry.js';
 const FATHOM_VERSION = '0.1.0';
 const SCHEMA_VERSION = '1.0';
 
+import type { FathomPlugin } from '../plugins/types.js';
+import { PluginRegistry } from '../plugins/registry.js';
+
 /**
  * Options passed to the orchestrator.
  */
@@ -41,6 +44,10 @@ export interface OrchestratorOptions {
   ruleOverrides?: Record<string, RuleConfigValue>;
   /** Optional online mode flag for analyzers requiring network opt-in */
   online?: boolean;
+  /** Optional plugins to execute during analysis */
+  plugins?: FathomPlugin[] | undefined;
+  /** Optional custom plugin registry */
+  pluginRegistry?: PluginRegistry | undefined;
 }
 
 /**
@@ -132,6 +139,23 @@ export async function runAnalysis(
     ));
   if (options.online !== undefined) {
     context.online = options.online;
+  }
+
+  // Register plugins if provided
+  if (options.plugins && options.plugins.length > 0) {
+    const pluginRegistry = options.pluginRegistry ?? new PluginRegistry();
+    for (const plugin of options.plugins) {
+      if (!pluginRegistry.has(plugin.manifest.name)) {
+        await pluginRegistry.register(plugin);
+      }
+    }
+    for (const pluginAnalyzer of pluginRegistry.getAnalyzers()) {
+      registry.register(pluginAnalyzer);
+    }
+  } else if (options.pluginRegistry) {
+    for (const pluginAnalyzer of options.pluginRegistry.getAnalyzers()) {
+      registry.register(pluginAnalyzer);
+    }
   }
 
   // Run analyzers — parallel but capped to avoid thrashing

@@ -105,3 +105,17 @@ export class FathomGitDiffError extends Error {
     this.name = 'FathomGitDiffError';
   }
 }
+
+/**
+ * Thrown when a plugin is malformed, has colliding rules/analyzers, or fails validation.
+ * Results in exit code 2.
+ */
+export class FathomPluginError extends Error {
+  constructor(
+    message: string,
+    public readonly pluginName?: string,
+  ) {
+    super(message);
+    this.name = 'FathomPluginError';
+  }
+}

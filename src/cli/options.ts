@@ -33,6 +33,8 @@ export interface FathomConfig {
   rules: Record<string, RuleConfigValue>;
   /** Explicit list of security rules that were intentionally disabled */
   disabledSecurityRules?: string[] | undefined;
+  /** Optional list of enabled plugins (e.g. ["@fathom/plugin-react"]) */
+  plugins?: string[] | undefined;
 }
 
 /**
@@ -336,6 +338,21 @@ export async function loadConfig(repositoryRoot: string): Promise<FathomConfig> 
     }
   }
 
+  // Validate plugins if declared
+  let pluginsList: string[] | undefined;
+  if (config['plugins'] !== undefined) {
+    if (!Array.isArray(config['plugins'])) {
+      throw new FathomConfigError(`"plugins" in .fathom.json must be an array of plugin names.`, configPath);
+    }
+    pluginsList = [];
+    for (const p of config['plugins']) {
+      if (typeof p !== 'string' || !p.trim()) {
+        throw new FathomConfigError(`Each entry in "plugins" must be a non-empty string.`, configPath);
+      }
+      pluginsList.push(p.trim());
+    }
+  }
+
   return {
     version: typeof config['version'] === 'number' ? config['version'] : 1,
     ignore: combinedIgnore,
@@ -344,5 +361,6 @@ export async function loadConfig(repositoryRoot: string): Promise<FathomConfig> 
     thresholds,
     rules,
     disabledSecurityRules,
+    plugins: pluginsList,
   };
 }

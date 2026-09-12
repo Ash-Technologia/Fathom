@@ -290,14 +290,35 @@ Fathom provides static and offline-first dependency intelligence without package
 
 ---
 
-## 12. Current Test & Quality Matrix
+## 12. Plugin Architecture Subsystem (Prompt 8)
+
+Fathom provides a stable, safe, and sandboxed plugin subsystem that allows external developers and internal modules to extend Fathom with custom rules and analyzers:
+- **Stable Plugin API**:
+  - `PluginManifest`: Formal package metadata (`name`, `version`, `description`, `author`, `rules`).
+  - `PluginRule`: Extends core `RuleDefinition` with `recommendation`, `confidence`, `autoFixable`, and `references`.
+  - `PluginAnalyzer`: Custom analyzer contract (`id`, `name`, `category`, `description`, `analyze(context: PluginContext)`).
+  - `PluginContext`: Read-only, sandboxed context enforcing path traversal protections (`hasFile`, `getFileContent` with 1MB bounds), metadata access, and `createFinding` helpers.
+  - `PluginRegistry`: Validates manifests, manages lifecycle, registers rules in `ruleRegistry` for `.fathom.json` override support (`off`, `warning`, `error`), and adapts analyzers with fail-safe error boundaries.
+- **Built-in Example Plugin (`@fathom/plugin-react`)**:
+  - `REACT-001` (Security / medium): `dangerouslySetInnerHTML` usage without sanitization.
+  - `REACT-002` (Quality / low): Array index used as key or missing key in list iteration.
+  - `REACT-003` (Quality / medium): Direct React state mutation (`this.state.x = ...`).
+- **Security & Sandboxing Guarantees**:
+  - Zero arbitrary code execution or process spawning.
+  - Path traversal attempts outside repository root are strictly blocked.
+  - Failing plugin analyzers are safely isolated and do not crash core analysis.
+
+---
+
+## 13. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 20 test files, 106/106 tests passing (~6.9s runtime). |
+| **Vitest Tests** | 🟢 Passed | 22 test files, 122/122 tests passing (~7.6s runtime). |
+| **Plugin Architecture** | 🟢 Passed | Registration, unregistration, validation, sandboxing, traversal protection, setup hooks, rule overrides, fail-safe crash isolation, React plugin findings. |
 | **Dependency Intelligence** | 🟢 Passed | Static lockfile parsing (v1/v2/v3 package-lock, yarn.lock, pnpm), duplicate version detection, suspicious specifiers, high-confidence unused deps, OSV & registry queries. |
 | **Architecture Intelligence** | 🟢 Passed | Import extraction, alias resolution, Tarjan's SCC cycle detection, boundary violations, CLI `--architecture` visual tree. |
 | **Configuration & Targeting** | 🟢 Passed | `.fathomignore` parsing, schema validation, `off`/`warning`/`error` states, critical security rule safeguards, precedence. |
@@ -305,11 +326,11 @@ Fathom provides static and offline-first dependency intelligence without package
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
 | **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |
 | **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |
-| **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **98 / 100 (Excellent)**. |
+| **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **91 / 100 (Excellent)**, CI mode exits 0 with zero high/critical issues. |
 
 ---
 
-## 13. Deployment & Publishing Guide
+## 14. Deployment & Publishing Guide
 
 ### Step 1: Add NPM Token to GitHub Secrets
 1. Log in to [npmjs.com](https://www.npmjs.com/) and go to **Access Tokens**.

@@ -25,6 +25,8 @@ import {
   publishStepSummary,
   publishPRComment,
 } from '../integrations/github/context.js';
+import type { FathomPlugin } from '../plugins/types.js';
+import { reactPlugin } from '../plugins/examples/react.js';
 
 export interface AnalyzeOptions {
   json?: boolean;
@@ -132,12 +134,22 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
 
   let result;
   try {
+    const pluginsToLoad: FathomPlugin[] = [];
+    if (config.plugins && config.plugins.length > 0) {
+      for (const pName of config.plugins) {
+        if (pName === '@fathom/plugin-react' || pName === 'react') {
+          pluginsToLoad.push(reactPlugin);
+        }
+      }
+    }
+
     const registry = createDefaultRegistry();
     result = await runAnalysis(registry, {
       repositoryPath: resolvedPath,
       ignorePatterns: config.ignore ?? [],
       ruleOverrides: config.rules ?? {},
       online: Boolean(options.online),
+      plugins: pluginsToLoad,
     });
   } catch (err) {
     spinner?.fail('Analysis failed.');

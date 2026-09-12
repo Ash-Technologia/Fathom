@@ -35,6 +35,15 @@ export class RuleRegistry {
     return this.rules.get(id);
   }
 
+  hasRule(id: string): boolean {
+    return this.rules.has(id);
+  }
+
+  registerRule(rule: RuleDefinition): this {
+    this.rules.set(rule.id, rule);
+    return this;
+  }
+
   getRulesByCategory(category: Category): RuleDefinition[] {
     return [...this.rules.values()].filter((r) => r.category === category);
   }
