@@ -3,12 +3,20 @@ import type { Severity } from './severity.js';
 import { RULE_DEFINITIONS, type RuleDefinition } from './definitions.js';
 
 /**
+ * Rule configuration states.
+ */
+export type RuleState = 'off' | 'warning' | 'error';
+
+/**
  * Per-rule configuration override (from .fathom.json)
  */
 export interface RuleConfig {
-  enabled?: boolean;
-  severity?: Severity;
+  enabled?: boolean | undefined;
+  severity?: Severity | undefined;
+  reason?: string | undefined;
 }
+
+export type RuleConfigValue = RuleState | RuleConfig;
 
 /**
  * The rule registry provides lookup and filtering of all registered rules.
@@ -35,18 +43,32 @@ export class RuleRegistry {
     return [...this.rules.values()];
   }
 
-  isEnabled(id: string, overrides: Record<string, RuleConfig> = {}): boolean {
+  isEnabled(id: string, overrides: Record<string, RuleConfigValue> = {}): boolean {
     const override = overrides[id];
-    if (override?.enabled !== undefined) return override.enabled;
+    if (override !== undefined) {
+      if (typeof override === 'string') {
+        if (override === 'off') return false;
+        if (override === 'warning' || override === 'error') return true;
+      } else if (typeof override === 'object' && override !== null) {
+        if (override.enabled !== undefined) return override.enabled;
+      }
+    }
     return this.rules.get(id)?.enabledByDefault ?? true;
   }
 
   getEffectiveSeverity(
     id: string,
-    overrides: Record<string, RuleConfig> = {},
+    overrides: Record<string, RuleConfigValue> = {},
   ): Severity | undefined {
     const override = overrides[id];
-    if (override?.severity) return override.severity;
+    if (override !== undefined) {
+      if (typeof override === 'string') {
+        if (override === 'warning') return 'medium';
+        if (override === 'error') return 'high';
+      } else if (typeof override === 'object' && override !== null) {
+        if (override.severity) return override.severity;
+      }
+    }
     return this.rules.get(id)?.severity;
   }
 }

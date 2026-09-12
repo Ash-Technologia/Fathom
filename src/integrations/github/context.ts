@@ -35,6 +35,7 @@ export async function detectGitHubContext(): Promise<GitHubContext> {
       }
     } catch {
       // Ignore unreadable or invalid event file
+      prNumber = undefined;
     }
   }
 

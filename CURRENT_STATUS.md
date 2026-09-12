@@ -262,7 +262,8 @@ Fathom features a native, local-first PR intelligence engine (`fathom --diff [re
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 14 test files, 64/64 tests passing (~2.5s runtime). |
+| **Vitest Tests** | 🟢 Passed | 16 test files, 81/81 tests passing (~2.8s runtime). |
+| **Configuration & Targeting** | 🟢 Passed | `.fathomignore` parsing, schema validation, `off`/`warning`/`error` states, critical security rule safeguards, precedence. |
 | **GitHub PR Integration Testing** | 🟢 Passed | Step summary file generation, GitHub Actions environment detection, PR comment token masking. |
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
 | **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |

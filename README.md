@@ -485,26 +485,87 @@ Fathom calculates individual 0–100 scores for each category based on deduction
 
 ---
 
-## ⚙️ Configuration (`.fathom.json`)
+## ⚙️ Configuration & Repository Targeting
 
-Customize behavior by adding a `.fathom.json` file in the root of your repository:
+### 1. `.fathomignore`
+
+Create a `.fathomignore` file in the root of your repository to specify repository-specific exclusion patterns using familiar gitignore-style syntax:
+
+```text
+# Exclude code generation and vendor directories
+generated/
+vendor/
+legacy/
+
+# Exclude generated artifacts
+*.generated.ts
+*.min.js
+```
+
+- Comments starting with `#` and blank lines are ignored.
+- Trailing slashes automatically match directories and all nested contents.
+- Patterns are merged deterministically with `.fathom.json` and built-in ignore lists.
+
+---
+
+### 2. `.fathom.json`
+
+Customize rules, thresholds, and quality gates with a `.fathom.json` configuration file:
 
 ```json
 {
+  "version": 1,
   "ignore": [
-    "tests/fixtures/**",
-    "legacy/**"
+    "fixtures/**"
   ],
-  "thresholds": {
-    "largeFileMB": 10,
-    "largeFileLines": 500
-  },
   "rules": {
-    "QUAL-003": {
-      "enabled": false
+    "QUAL-001": "warning",
+    "QUAL-005": "off"
+  },
+  "failUnder": 75
+}
+```
+
+#### Rule States:
+- `"off"`: Disables the rule completely.
+- `"warning"`: Enables the rule at warning severity.
+- `"error"`: Enables the rule at error severity (triggers CI failure if violated).
+
+#### Security Safeguards:
+To prevent unintentional security vulnerabilities, Fathom **does not allow configuration to silently disable critical security checks** (e.g. `SEC-001` through `SEC-005`).
+Disabling a security rule requires explicit authorization:
+```json
+{
+  "version": 1,
+  "rules": {
+    "SEC-002": {
+      "enabled": false,
+      "reason": "Handled upstream by pre-commit secrets hook"
     }
   }
 }
+```
+Or with global opt-in:
+```json
+{
+  "version": 1,
+  "allowDisableSecurity": true,
+  "rules": {
+    "SEC-003": "off"
+  }
+}
+```
+If disabled, Fathom explicitly logs a warning to stderr during analysis.
+
+#### Configuration Precedence:
+```text
+CLI Arguments (e.g. --fail-under 80, --ci, explicit flags)
+       ↓
+.fathom.json Configuration
+       ↓
+.fathomignore Patterns
+       ↓
+Built-in Defaults
 ```
 
 ---

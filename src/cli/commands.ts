@@ -90,6 +90,15 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     throw err;
   }
 
+  // Warn explicitly about any disabled security checks
+  if (config.disabledSecurityRules && config.disabledSecurityRules.length > 0) {
+    for (const secRule of config.disabledSecurityRules) {
+      process.stderr.write(
+        `[Fathom] Warning: Security check ${secRule} has been explicitly disabled via configuration.\n`,
+      );
+    }
+  }
+
   // Pre-load baseline if comparison requested
   let baseline: BaselineData | null = null;
   if (options.compare) {
@@ -121,6 +130,7 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     result = await runAnalysis(registry, {
       repositoryPath: resolvedPath,
       ignorePatterns: config.ignore ?? [],
+      ruleOverrides: config.rules ?? {},
     });
   } catch (err) {
     spinner?.fail('Analysis failed.');
@@ -261,8 +271,8 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     await termReporter.report(result, isCIMode, isVerbose);
   }
 
-  // --fail-under threshold check
-  const threshold = options.failUnder;
+  // fail-under threshold check (CLI flag takes precedence over .fathom.json)
+  const threshold = options.failUnder ?? config.failUnder;
   if (typeof threshold === 'number') {
     if (result.score.overall < threshold) {
       if (!isJsonMode && !isSarifMode) {

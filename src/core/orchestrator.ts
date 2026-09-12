@@ -19,6 +19,9 @@ import { DocumentationAnalyzer } from '../analyzers/documentation/index.js';
 import { CICDAnalyzer } from '../analyzers/cicd/index.js';
 import { ArchitectureAnalyzer } from '../analyzers/architecture/index.js';
 
+import type { RuleConfigValue } from '../rules/registry.js';
+import { ruleRegistry } from '../rules/registry.js';
+
 const FATHOM_VERSION = '0.1.0';
 const SCHEMA_VERSION = '1.0';
 
@@ -34,6 +37,8 @@ export interface OrchestratorOptions {
   ignorePatterns?: string[];
   /** Optional pre-built repository context */
   context?: RepositoryContext;
+  /** Optional per-rule configuration overrides */
+  ruleOverrides?: Record<string, RuleConfigValue>;
 }
 
 /**
@@ -124,6 +129,22 @@ export async function runAnalysis(
   const results: AnalyzerResult[] = await Promise.all(
     analyzers.map((analyzer) => runAnalyzerSafely(analyzer, context)),
   );
+
+  // Apply per-rule overrides (e.g. "off", "warning", "error", or custom severity)
+  const ruleOverrides = options.ruleOverrides ?? {};
+  if (Object.keys(ruleOverrides).length > 0) {
+    for (const r of results) {
+      r.findings = r.findings
+        .filter((f) => ruleRegistry.isEnabled(f.ruleId, ruleOverrides))
+        .map((f) => {
+          const effectiveSeverity = ruleRegistry.getEffectiveSeverity(f.ruleId, ruleOverrides);
+          if (effectiveSeverity && effectiveSeverity !== f.severity) {
+            return { ...f, severity: effectiveSeverity };
+          }
+          return f;
+        });
+    }
+  }
 
   // Aggregate findings
   const allFindings = results.flatMap((r) => r.findings);
