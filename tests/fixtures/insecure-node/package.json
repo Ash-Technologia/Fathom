@@ -1,0 +1,11 @@
+{
+  "name": "insecure-node-app",
+  "version": "0.1.0",
+  "description": "Insecure app",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "lodash": "4.17.0"
+  }
+}

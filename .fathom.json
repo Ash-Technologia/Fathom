@@ -1,0 +1,9 @@
+{
+  "ignore": [
+    "tests/fixtures/**"
+  ],
+  "thresholds": {
+    "largeFileMB": 10,
+    "largeFileLines": 500
+  }
+}

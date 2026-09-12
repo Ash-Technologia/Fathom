@@ -1,0 +1,271 @@
+# FATHOM
+
+> **Know what's beneath the surface.**
+
+[![CI](https://github.com/your-org/fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/fathom/actions)
+[![npm version](https://img.shields.io/npm/v/fathom.svg)](https://www.npmjs.com/package/fathom)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+**Fathom** is a local-first repository intelligence CLI for developers. It analyzes software repositories and produces an actionable understanding of health, architecture, security hygiene, Git hygiene, dependencies, testing maturity, documentation quality, and CI/CD readiness.
+
+---
+
+## ⚡ Quick Start
+
+Analyze any repository directly with `npx`:
+
+```bash
+npx fathom .
+```
+
+Or install globally:
+
+```bash
+npm install -g fathom
+fathom .
+```
+
+---
+
+## 🧭 Why Fathom?
+
+Most linters focus exclusively on syntax or code formatting, and full security scanners are often slow, cloud-dependent, or noisy.
+
+Fathom answers a different question:
+
+> *"What is really going on inside this codebase, and what should I address before continuing work or shipping it?"*
+
+### Core Principles
+
+- 🔒 **Local-First & Privacy-Focused**: Never uploads code or telemetry. Safe, read-only operations only.
+- 🎯 **Deterministic**: Same repository state produces the exact same score and findings every time.
+- 🚫 **Safe Secrets Handling**: Detects exposed credentials without ever printing or logging secret values.
+- 🧩 **Extensible Architecture**: 9 isolated analyzers with typed findings, metrics, and scoring.
+- ⚡ **Blazing Fast**: Single filesystem traversal index; completes typical repository scans in under 200ms.
+
+---
+
+## 📊 Terminal UX
+
+Running `fathom .` produces a clean, readable overview:
+
+```text
+                         FATHOM
+            Know what's beneath the surface.
+
+Scanning my-app...
+
+Detected: Node.js, TypeScript, React, Next.js
+
+────────────────────────────────────────────────────────
+
+HEALTH
+
+                        88 / 100
+                        Healthy
+
+  Project              100
+  Git                   94
+  Security              85
+  Dependencies          90
+  Code Quality          85
+  Testing               80
+  Documentation         85
+  CI/CD                 90
+
+────────────────────────────────────────────────────────
+
+ATTENTION
+
+HIGH
+  Environment file may not be gitignored: .env
+  .env
+
+MEDIUM
+  Low test-to-source file ratio
+  Test files represent only 8% of source files (2 tests vs 24 source files).
+
+LOW
+  12 debug statements found across source files
+
+────────────────────────────────────────────────────────
+
+NEXT STEPS
+
+  1. Add ".env" to .gitignore to prevent accidental commits.
+  2. Increase test coverage for critical application logic.
+  3. Remove or gate debug statements before shipping to production.
+
+────────────────────────────────────────────────────────
+
+  ✓ Project
+  ✓ Git
+  ✓ Security
+  ✓ Dependencies
+  ✓ Code Quality
+  ✓ Testing
+  ✓ Documentation
+  ✓ CI/CD
+  ✓ Architecture
+
+Completed in 142ms
+```
+
+---
+
+## 🛠️ CLI Commands & Options
+
+```bash
+# Analyze current directory
+fathom .
+
+# Analyze specific repository path
+fathom /path/to/repo
+
+# Output machine-readable JSON to stdout
+fathom --json
+
+# Generate self-contained HTML report
+fathom --html report.html
+
+# Run in CI mode (minimal decorations, machine exit codes)
+fathom --ci
+
+# Fail CI build if overall health score is below threshold
+fathom --ci --fail-under 80
+
+# Display version or help
+fathom --version
+fathom --help
+```
+
+### Exit Codes
+
+| Code | Meaning |
+|:----:|:--------|
+| **0** | Analysis successful and meets health thresholds |
+| **1** | Analysis complete, but `--fail-under` threshold failed or critical findings found in CI mode |
+| **2** | Invalid CLI usage or configuration syntax error |
+| **3** | Repository access error or fatal system failure |
+
+---
+
+## 🔍 Analyzers & Rules (25 Core Rules)
+
+Fathom evaluates repositories across **9 isolated analyzers**:
+
+| Rule ID | Category | Title | Severity |
+|:---|:---|:---|:---:|
+| `PROJ-001` | Project | Ecosystem detection (Node.js, Python, Go, Rust, Java, PHP) | `info` |
+| `PROJ-002` | Project | Framework detection (React, Next.js, Vue, Angular, Express, FastAPI, etc.) | `info` |
+| `PROJ-003` | Project | Package manager detection (npm, pnpm, yarn, poetry, cargo, etc.) | `info` |
+| `PROJ-004` | Project | Repository size & file count heuristics | `info` |
+| `GIT-001` | Git | Git repository initialized check | `medium` |
+| `GIT-002` | Git | `.gitignore` existence | `medium` |
+| `GIT-003` | Git | Generated directory ignore checks (`node_modules`, `dist`, `target`, etc.) | `medium` |
+| `GIT-004` | Git | Detection of large files committed (>10 MB) | `high` |
+| `GIT-005` | Git | Uncommitted changes status (informational, does not penalize) | `info` |
+| `GIT-006` | Git | Empty repository (no commits) check | `low` |
+| `SEC-001` | Security | `.env` not ignored by Git | `high` |
+| `SEC-002` | Security | Potential credentials/secrets in source code (AWS keys, tokens, etc.) | `high` |
+| `SEC-003` | Security | Private key files present (`id_rsa`, `.pem`, `.key`) | `high` |
+| `SEC-004` | Security | Tracked credential/config files (`secrets.json`, etc.) | `high` |
+| `SEC-005` | Security | Credentials embedded in connection URLs | `high` |
+| `DEP-001` | Dependencies | Manifest detection (`package.json`, `Cargo.toml`, etc.) | `info` |
+| `DEP-002` | Dependencies | Lockfile detection (`package-lock.json`, `pnpm-lock.yaml`, etc.) | `info` |
+| `DEP-003` | Dependencies | Missing lockfile when manifest is present | `medium` |
+| `DEP-004` | Dependencies | Package manager / lockfile mismatch | `low` |
+| `DEP-005` | Dependencies | High dependency count indicator | `low` |
+| `QUAL-001` | Quality | TODO comment count | `low` |
+| `QUAL-002` | Quality | FIXME comment count | `medium` |
+| `QUAL-003` | Quality | Debug/console statements left in code (`console.log`, `debugger`, etc.) | `low` |
+| `QUAL-004` | Quality | Empty catch blocks | `medium` |
+| `QUAL-005` | Quality | Extremely large source files (>500 lines) | `low` |
+| `QUAL-006` | Quality | Deep directory nesting (>6 levels) | `low` |
+| `TEST-001` | Testing | Test directories detection | `info` |
+| `TEST-002` | Testing | Test files detection | `medium` |
+| `TEST-003` | Testing | Test scripts in package manifest | `medium` |
+| `TEST-004` | Testing | Test-to-source file ratio heuristic | `medium` |
+| `DOC-001` | Documentation | `README.md` exists | `medium` |
+| `DOC-002` | Documentation | Installation instructions present in README | `low` |
+| `DOC-003` | Documentation | Usage instructions present in README | `low` |
+| `DOC-004` | Documentation | `LICENSE` exists | `medium` |
+| `DOC-005` | Documentation | `CONTRIBUTING.md` exists | `low` |
+| `DOC-006` | Documentation | `SECURITY.md` exists | `low` |
+| `DOC-007` | Documentation | Project description present in README | `low` |
+| `CI-001` | CI/CD | GitHub Actions workflows detected | `info` |
+| `CI-002` | CI/CD | CI/CD configuration presence | `medium` |
+| `CI-003` | CI/CD | Test execution detected in CI | `low` |
+| `CI-004` | CI/CD | Build step detected in CI | `low` |
+
+---
+
+## 📈 Scoring System
+
+Fathom calculates individual 0–100 scores for each category based on deductions from detected findings:
+
+| Category | Weight |
+|:---|:---:|
+| **Security** | 20% |
+| **Git** | 15% |
+| **Project Structure** | 15% |
+| **Testing** | 15% |
+| **Dependencies** | 10% |
+| **Documentation** | 10% |
+| **Code Quality** | 10% |
+| **CI/CD** | 5% |
+
+### Score Bands
+
+- **90–100**: Excellent
+- **75–89**: Healthy
+- **60–74**: Fair
+- **40–59**: Needs Attention
+- **0–39**: Critical
+
+---
+
+## ⚙️ Configuration (`.fathom.json`)
+
+Customize behavior by adding a `.fathom.json` file in the root of your repository:
+
+```json
+{
+  "ignore": [
+    "tests/fixtures/**",
+    "legacy/**"
+  ],
+  "thresholds": {
+    "largeFileMB": 10,
+    "largeFileLines": 500
+  },
+  "rules": {
+    "QUAL-003": {
+      "enabled": false
+    }
+  }
+}
+```
+
+---
+
+## 🛡️ Security Model
+
+Fathom treats target repositories as **untrusted input**:
+- ❌ Never executes repository code or binaries
+- ❌ Never installs dependencies or runs build commands
+- ❌ Never transmits code or data over the network
+- ❌ Never leaks or logs detected secret values (only filenames and line numbers)
+- ✅ Only performs strictly bounded, read-only file inspections
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to add rules, analyzers, or test fixtures.
+
+---
+
+## 📄 License
+
+MIT © [Fathom Contributors](LICENSE)

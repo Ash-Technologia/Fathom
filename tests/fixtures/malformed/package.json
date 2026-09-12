@@ -1,0 +1,5 @@
+{
+  "name": "malformed-repo",
+  "version": 1.0,
+  "dependencies": {
+    "missing-closing-brace":
