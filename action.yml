@@ -1,0 +1,58 @@
+name: 'Fathom Repository Intelligence'
+description: 'Deep repository health, security hygiene, and maintainability intelligence for your codebase.'
+author: 'Ash-Technologia'
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  path:
+    description: 'Path to repository or directory to analyze'
+    required: false
+    default: '.'
+  fail-under:
+    description: 'Exit with error code 1 if health score is below this value (0-100)'
+    required: false
+    default: ''
+  html:
+    description: 'Path to generate an HTML report (e.g. fathom-report.html)'
+    required: false
+    default: ''
+  output:
+    description: 'Path to save JSON report (e.g. fathom-report.json)'
+    required: false
+    default: ''
+  verbose:
+    description: 'Display all findings without the default 10-finding limit'
+    required: false
+    default: 'false'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Prepare Fathom CLI
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        if [ ! -d "${{ github.action_path }}/dist" ]; then
+          npm ci --ignore-scripts
+          npm run build
+        fi
+
+    - name: Run Fathom Analysis
+      shell: bash
+      run: |
+        CMD_ARGS="${{ inputs.path }} --ci"
+        if [ -n "${{ inputs.fail-under }}" ]; then
+          CMD_ARGS="$CMD_ARGS --fail-under ${{ inputs.fail-under }}"
+        fi
+        if [ -n "${{ inputs.html }}" ]; then
+          CMD_ARGS="$CMD_ARGS --html ${{ inputs.html }}"
+        fi
+        if [ -n "${{ inputs.output }}" ]; then
+          CMD_ARGS="$CMD_ARGS --json -o ${{ inputs.output }}"
+        fi
+        if [ "${{ inputs.verbose }}" = "true" ]; then
+          CMD_ARGS="$CMD_ARGS --verbose"
+        fi
+        node "${{ github.action_path }}/dist/cli/index.js" $CMD_ARGS

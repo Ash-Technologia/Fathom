@@ -5,6 +5,9 @@
 [![CI](https://github.com/Ash-Technologia/Fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/Ash-Technologia/Fathom/actions)
 [![npm version](https://img.shields.io/npm/v/fathom.svg)](https://www.npmjs.com/package/fathom)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
+[![GitHub Action](https://img.shields.io/badge/action-Ash--Technologia%2FFathom-blue?logo=githubactions)](https://github.com/Ash-Technologia/Fathom)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Ash-Technologia/Fathom/blob/main/CONTRIBUTING.md)
 
 **Fathom** is a local-first repository intelligence CLI for developers. It analyzes software repositories and produces an actionable understanding of health, architecture, security hygiene, Git hygiene, dependencies, testing maturity, documentation quality, and CI/CD readiness.
 
@@ -156,7 +159,44 @@ fathom --help
 
 ---
 
-## 🔍 Analyzers & Rules (25 Core Rules)
+## 🤖 GitHub Action Integration
+
+You can run Fathom directly in your GitHub Actions workflows with zero extra configuration:
+
+```yaml
+name: Repository Intelligence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  fathom:
+    name: Repository Health Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Run Fathom
+        uses: Ash-Technologia/Fathom@main
+        with:
+          fail-under: '80'
+          html: 'fathom-report.html'
+
+      - name: Upload HTML Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fathom-report
+          path: fathom-report.html
+```
+
+---
+
+## 🔍 Analyzers & Rules (26 Core Rules)
 
 Fathom evaluates repositories across **9 isolated analyzers**:
 
@@ -174,21 +214,21 @@ Fathom evaluates repositories across **9 isolated analyzers**:
 | `GIT-006` | Git | Empty repository (no commits) check | `low` |
 | `SEC-001` | Security | `.env` not ignored by Git | `high` |
 | `SEC-002` | Security | Potential credentials/secrets in source code (AWS keys, tokens, etc.) | `high` |
-| `SEC-003` | Security | Private key files present (`id_rsa`, `.pem`, `.key`) | `high` |
+| `SEC-003` | Security | Private key files present (`id_rsa`, `.pem`, `.key`) | `critical` |
 | `SEC-004` | Security | Tracked credential/config files (`secrets.json`, etc.) | `high` |
 | `SEC-005` | Security | Credentials embedded in connection URLs | `high` |
 | `DEP-001` | Dependencies | Manifest detection (`package.json`, `Cargo.toml`, etc.) | `info` |
 | `DEP-002` | Dependencies | Lockfile detection (`package-lock.json`, `pnpm-lock.yaml`, etc.) | `info` |
 | `DEP-003` | Dependencies | Missing lockfile when manifest is present | `medium` |
 | `DEP-004` | Dependencies | Package manager / lockfile mismatch | `low` |
-| `DEP-005` | Dependencies | High dependency count indicator | `low` |
+| `DEP-005` | Dependencies | Total dependencies declared | `info` |
 | `QUAL-001` | Quality | TODO comment count | `low` |
 | `QUAL-002` | Quality | FIXME comment count | `medium` |
 | `QUAL-003` | Quality | Debug/console statements left in code (`console.log`, `debugger`, etc.) | `low` |
 | `QUAL-004` | Quality | Empty catch blocks | `medium` |
 | `QUAL-005` | Quality | Extremely large source files (>500 lines) | `low` |
 | `QUAL-006` | Quality | Deep directory nesting (>6 levels) | `low` |
-| `TEST-001` | Testing | Test directories detection | `info` |
+| `TEST-001` | Testing | Standard test directory detection | `low` |
 | `TEST-002` | Testing | Test files detection | `medium` |
 | `TEST-003` | Testing | Test scripts in package manifest | `medium` |
 | `TEST-004` | Testing | Test-to-source file ratio heuristic | `medium` |
@@ -201,8 +241,9 @@ Fathom evaluates repositories across **9 isolated analyzers**:
 | `DOC-007` | Documentation | Project description present in README | `low` |
 | `CI-001` | CI/CD | GitHub Actions workflows detected | `info` |
 | `CI-002` | CI/CD | CI/CD configuration presence | `medium` |
-| `CI-003` | CI/CD | Test execution detected in CI | `low` |
+| `CI-003` | CI/CD | Test execution detected in CI | `medium` |
 | `CI-004` | CI/CD | Build step detected in CI | `low` |
+| `ARCH-001` | Architecture | Project layout & structure observations | `info` |
 
 ---
 
