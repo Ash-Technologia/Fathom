@@ -3,7 +3,7 @@
 > **Know what's beneath the surface.**
 
 [![CI](https://github.com/Ash-Technologia/Fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/Ash-Technologia/Fathom/actions)
-[![npm version](https://img.shields.io/npm/v/fathom.svg)](https://www.npmjs.com/package/fathom)
+[![npm version](https://img.shields.io/npm/v/@ash-technologia/fathom.svg)](https://www.npmjs.com/package/@ash-technologia/fathom)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org)
 [![GitHub Action](https://img.shields.io/badge/action-Ash--Technologia%2FFathom-blue?logo=githubactions)](https://github.com/Ash-Technologia/Fathom)
@@ -18,13 +18,13 @@
 Analyze any repository directly with `npx`:
 
 ```bash
-npx fathom .
+npx @ash-technologia/fathom .
 ```
 
 Or install globally:
 
 ```bash
-npm install -g fathom
+npm install -g @ash-technologia/fathom
 fathom .
 ```
 

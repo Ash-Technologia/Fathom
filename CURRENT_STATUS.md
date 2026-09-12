@@ -2,6 +2,8 @@
 
 > **Document Purpose**: Complete, living operational reference depicting the exact working, architecture, features, and production status of Fathom.  
 > **Repository**: [Ash-Technologia/Fathom](https://github.com/Ash-Technologia/Fathom)  
+> **NPM Package**: [`@ash-technologia/fathom`](https://www.npmjs.com/package/@ash-technologia/fathom)  
+> **Executable**: `fathom`  
 > **Version**: `0.1.0`  
 > **Status**: 🟢 **Production-Ready & Pre-Deployment Verified**  
 > **Last Updated**: `2026-09-13`  
@@ -206,13 +208,47 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 8. Deployment Checklist
+## 8. Deployment & Publishing Guide
 
-1. [x] Core orchestrator, 9 analyzers, and 26 rules implemented and verified.
-2. [x] Pre-deployment audit items and bugs resolved.
-3. [x] All placeholder URLs corrected to `Ash-Technologia/Fathom`.
-4. [x] Composite GitHub Action (`action.yml`) created and documented.
-5. [x] Automated release workflow configured.
-6. [x] Documentation (`README.md`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`) complete.
-7. [ ] Add `NPM_TOKEN` secret to GitHub repository Settings > Secrets > Actions.
-8. [ ] Tag and push release (`git tag v0.1.0 && git push origin v0.1.0`).
+### Step 1: Add NPM Token to GitHub Secrets
+1. Log in to [npmjs.com](https://www.npmjs.com/) and go to **Access Tokens**.
+2. Generate a new token with **Automation** or **Publish** permissions (named e.g. `github-actions-fathom`).
+3. Open the GitHub repository: `https://github.com/Ash-Technologia/Fathom`.
+4. Go to **Settings > Secrets and variables > Actions**.
+5. Click **New repository secret**, name it `NPM_TOKEN`, and paste the token.
+
+### Step 2: Publish via Git Tag (Automated)
+Run the following commands locally:
+```bash
+git tag v0.1.0
+git push origin v0.1.0
+```
+This triggers `.github/workflows/release.yml`, which:
+1. Validates types and linting (`npm run lint`, `npm run typecheck`).
+2. Runs the full Vitest test suite (`npm test`).
+3. Compiles the TypeScript distribution (`npm run build`).
+4. Runs a self-analysis test (`node dist/cli/index.js . --ci`).
+5. Drafts and creates a GitHub Release with auto-generated release notes.
+6. Publishes `@ash-technologia/fathom@0.1.0` to npm with provenance.
+
+### Step 3: Manual Fallback Publish (CLI)
+If publishing locally from terminal:
+```bash
+npm login
+npm run build
+npm test
+npm publish --access public
+```
+
+### Step 4: Verification After Release
+1. Verify npm package:
+   ```bash
+   npx @ash-technologia/fathom --version
+   npx @ash-technologia/fathom .
+   ```
+2. Verify GitHub Action in any workflow:
+   ```yaml
+   - uses: Ash-Technologia/Fathom@v0.1.0
+     with:
+       fail-under: 80
+   ```

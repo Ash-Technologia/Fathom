@@ -1,5 +1,5 @@
 {
-  "name": "fathom",
+  "name": "@ash-technologia/fathom",
   "version": "0.1.0",
   "description": "Local-first repository intelligence CLI. Know what's beneath the surface.",
   "keywords": [
