@@ -22,6 +22,10 @@ inputs:
     description: 'Path to save JSON report (e.g. fathom-report.json)'
     required: false
     default: ''
+  sarif:
+    description: 'Path to generate a SARIF 2.1.0 report for GitHub Code Scanning (e.g. fathom.sarif)'
+    required: false
+    default: ''
   verbose:
     description: 'Display all findings without the default 10-finding limit'
     required: false
@@ -51,6 +55,9 @@ runs:
         fi
         if [ -n "${{ inputs.output }}" ]; then
           CMD_ARGS="$CMD_ARGS --json -o ${{ inputs.output }}"
+        fi
+        if [ -n "${{ inputs.sarif }}" ]; then
+          CMD_ARGS="$CMD_ARGS --sarif -o ${{ inputs.sarif }}"
         fi
         if [ "${{ inputs.verbose }}" = "true" ]; then
           CMD_ARGS="$CMD_ARGS --verbose"

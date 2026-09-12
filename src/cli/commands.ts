@@ -5,6 +5,7 @@ import { runAnalysis, createDefaultRegistry } from '../core/orchestrator.js';
 import { TerminalReporter } from '../reporters/terminal.js';
 import { JsonReporter } from '../reporters/json.js';
 import { HtmlReporter } from '../reporters/html.js';
+import { SarifReporter } from '../reporters/sarif.js';
 import { loadConfig } from './options.js';
 import {
   FathomConfigError,
@@ -18,12 +19,13 @@ import type { BaselineData } from '../baseline/types.js';
 
 export interface AnalyzeOptions {
   json?: boolean;
+  sarif?: boolean;
   html?: string | boolean;
   ci?: boolean;
   failUnder?: number;
   /** Show all findings in terminal output (no 10-finding cap) */
   verbose?: boolean;
-  /** Write JSON output to this file instead of stdout */
+  /** Write JSON or SARIF output to this file instead of stdout */
   output?: string;
   /** Save the current analysis as baseline in .fathom/baseline.json */
   baseline?: boolean;
@@ -44,6 +46,7 @@ export interface AnalyzeOptions {
  */
 export async function analyzeCommand(targetPath: string, options: AnalyzeOptions): Promise<void> {
   const isJsonMode = options.json === true;
+  const isSarifMode = options.sarif === true;
   const isCIMode = options.ci === true;
   const isVerbose = options.verbose === true;
 
@@ -86,9 +89,9 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     }
   }
 
-  // Spinner (not in JSON or CI mode)
+  // Spinner (not in JSON, SARIF, or CI mode)
   let spinner: ReturnType<typeof ora> | null = null;
-  if (!isJsonMode && !isCIMode) {
+  if (!isJsonMode && !isSarifMode && !isCIMode) {
     spinner = ora({
       text: `Scanning ${path.basename(resolvedPath)}...`,
       color: 'cyan',
@@ -125,9 +128,12 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   if (options.baseline) {
     try {
       const savedPath = await saveBaseline(resolvedPath, result);
-      if (!isJsonMode) {
+      if (!isJsonMode && !isSarifMode) {
         const rel = path.relative(resolvedPath, savedPath) || savedPath;
         process.stdout.write(`\n✓ Baseline saved to: ${rel}\n`);
+      } else {
+        const rel = path.relative(resolvedPath, savedPath) || savedPath;
+        process.stderr.write(`✓ Baseline saved to: ${rel}\n`);
       }
     } catch (err) {
       process.stderr.write(`Error: Failed to save baseline: ${String(err)}\n`);
@@ -136,7 +142,16 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   }
 
   // Report
-  if (isJsonMode) {
+  if (isSarifMode) {
+    const reporter = new SarifReporter();
+    if (options.output) {
+      const sarif = reporter.generateSarif(result);
+      await fs.writeFile(options.output, sarif, 'utf8');
+      process.stderr.write(`SARIF report written to: ${options.output}\n`);
+    } else {
+      await reporter.report(result);
+    }
+  } else if (isJsonMode) {
     const reporter = new JsonReporter();
     if (options.output) {
       // Write JSON to file
@@ -165,7 +180,7 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   const threshold = options.failUnder;
   if (typeof threshold === 'number') {
     if (result.score.overall < threshold) {
-      if (!isJsonMode) {
+      if (!isJsonMode && !isSarifMode) {
         process.stderr.write(
           `\nScore ${result.score.overall} is below threshold ${threshold}. Exiting with code 1.\n`,
         );

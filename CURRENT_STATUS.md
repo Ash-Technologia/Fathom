@@ -71,6 +71,7 @@ Fathom treats repositories as **untrusted input**: it never executes arbitrary r
            │  • Terminal (color / NO_COLOR)   │
            │  • JSON (stdout or -o <file>)    │
            │  • HTML (self-contained, no CDN) │
+           │  • SARIF 2.1.0 (Code Scanning)   │
            └──────────────────────────────────┘
 ```
 
@@ -161,7 +162,8 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 | `--baseline` | None | Analyzes repository and writes a deterministic baseline to `.fathom/baseline.json`. |
 | `--compare` | None | Analyzes repository and compares against `.fathom/baseline.json`, reporting deltas and regressions. |
 | `--json` | None | Outputs machine-readable JSON to stdout (includes comparison if `--compare`). |
-| `-o, --output` | `<file>` | Writes JSON output directly to file. |
+| `--sarif` | None | Outputs standard OASIS SARIF 2.1.0 to stdout or file (for GitHub Code Scanning). |
+| `-o, --output` | `<file>` | Writes JSON or SARIF output directly to file. |
 | `--html` | `[file]` | Generates self-contained interactive HTML report (includes comparison if `--compare`). |
 | `--ci` | None | CI mode: compact logging, fails build on critical/high finding or regression. |
 | `--fail-under` | `<score>` | Exits with code 1 if overall health score is strictly below this number. |
@@ -190,14 +192,30 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 7. Integrations & Automation
+## 7. SARIF 2.1.0 & GitHub Code Scanning Integration
+
+- **Standard Compliance**: Fully adheres to OASIS SARIF 2.1.0 schema specification (`https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json`).
+- **Severity Mapping**:
+  - `critical` / `high` ➔ `'error'`
+  - `medium` ➔ `'warning'`
+  - `low` ➔ `'note'`
+  - `info` ➔ `'none'`
+- **Driver & Catalog**: All 26 core rules indexed under `tool.driver.rules` with identifiers, full descriptions, recommendations in markdown help, and category tags.
+- **Zero Secret Exposure**: Snippets are omitted; secrets and tokens are never written into SARIF output.
+- **Deterministic**: Stable sorting by ruleId, normalized relative artifact URI, line, column, and finding ID.
+- **Location Flexibility**: Findings with source locations map to `%SRCROOT%`-relative URIs with exact startLine/startColumn; findings without source locations cleanly omit physical locations in compliance with SARIF 2.1.0 §3.27.12.
+
+---
+
+## 8. Integrations & Automation
 
 1. **GitHub Action (`action.yml`)**:
-   - Repository acts directly as a composite GitHub Action:
+   - Repository acts directly as a composite GitHub Action supporting SARIF, HTML, JSON, and threshold gating:
      ```yaml
      - uses: Ash-Technologia/Fathom@main
        with:
          fail-under: '80'
+         sarif: 'fathom.sarif'
          html: 'fathom-report.html'
      ```
 2. **Continuous Integration (`.github/workflows/ci.yml`)**:
@@ -209,20 +227,21 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 8. Current Test & Quality Matrix
+## 9. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 8 test files, 37/37 tests passing (~2.0s runtime). |
+| **Vitest Tests** | 🟢 Passed | 10 test files, 48/48 tests passing (~1.9s runtime). |
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
+| **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |
 | **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **98 / 100 (Excellent)**. |
 
 ---
 
-## 8. Deployment & Publishing Guide
+## 10. Deployment & Publishing Guide
 
 ### Step 1: Add NPM Token to GitHub Secrets
 1. Log in to [npmjs.com](https://www.npmjs.com/) and go to **Access Tokens**.

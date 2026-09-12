@@ -131,6 +131,12 @@ fathom --json
 # Save JSON report directly to a file
 fathom --json -o report.json
 
+# Output SARIF 2.1.0 to stdout
+fathom --sarif
+
+# Save SARIF 2.1.0 report directly to a file for GitHub Code Scanning
+fathom --sarif -o fathom.sarif
+
 # Display all findings without truncation (disables the default 10-finding limit)
 fathom --verbose
 
@@ -226,6 +232,7 @@ jobs:
         with:
           fail-under: '80'
           html: 'fathom-report.html'
+          sarif: 'fathom.sarif'
 
       - name: Upload HTML Report
         uses: actions/upload-artifact@v4
@@ -233,6 +240,69 @@ jobs:
         with:
           name: fathom-report
           path: fathom-report.html
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: fathom.sarif
+          category: fathom
+```
+
+---
+
+## 🛡️ GitHub Code Scanning & SARIF 2.1.0 Integration
+
+Fathom natively exports findings in standard **SARIF 2.1.0** (Static Analysis Results Interchange Format) format, which integrates seamlessly into GitHub Code Scanning:
+
+```
+Fathom
+  ↓
+SARIF (fathom --sarif -o fathom.sarif)
+  ↓
+GitHub Code Scanning (github/codeql-action/upload-sarif)
+  ↓
+Security & Quality Alerts in GitHub Security tab & PRs
+```
+
+### Standalone GitHub Actions Workflow
+
+To run Fathom via npm/npx and upload results directly to GitHub Code Scanning:
+
+```yaml
+name: Security & Health Scanning
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  fathom-scan:
+    name: Fathom SARIF Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Fathom SARIF Analysis
+        run: npx @ash-technologia/fathom . --sarif -o fathom.sarif
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: fathom.sarif
+          category: fathom
 ```
 
 ---
