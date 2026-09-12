@@ -155,10 +155,21 @@ fathom --compare --json
 # Compare against baseline and generate interactive HTML report
 fathom --compare --html report.html
 
+# Analyze changes introduced by Git diff (auto-detects base branch)
+fathom --diff
+
+# Analyze changes against a specific branch, commit, or remote ref
+fathom --diff main
+fathom --diff HEAD~1
+fathom --diff origin/main
+
+# PR analysis with machine-readable JSON output
+fathom --diff main --json
+
 # Run in CI mode (compact logging, fails if critical/high findings exist)
 fathom --ci
 
-# Fail CI build if overall health score is below threshold or regression is detected
+# Fail CI build if overall health score is below threshold, regression is detected, or PR diff introduces findings
 fathom --ci --fail-under 80
 
 # Display version or help
@@ -171,9 +182,72 @@ fathom --help
 | Code | Meaning |
 |:----:|:--------|
 | **0** | Analysis successful and meets health thresholds |
-| **1** | Analysis complete, but `--fail-under` threshold failed, critical findings found in CI mode, or regression detected in CI mode |
-| **2** | Invalid CLI usage, missing/corrupted baseline, or configuration syntax error |
+| **1** | Analysis complete, but `--fail-under` threshold failed, critical findings found in CI mode, regression detected in CI mode, or PR diff introduces findings |
+| **2** | Invalid CLI usage, missing/corrupted baseline, Git diff error (e.g. not a git repo, unresolvable base ref), or configuration syntax error |
 | **3** | Repository access error or fatal system failure |
+
+---
+
+## 🔀 Pull Request & Git Diff Intelligence
+
+Fathom extends beyond isolated file scanning with **PR-aware Git Diff Intelligence**. Instead of inspecting modified files in a vacuum, Fathom evaluates changes against the complete repository context:
+
+```
+Git Diff
+   ↓
+RepositoryContext
+   ↓
+Affected files
+   ↓
+Existing analyzers/rules
+   ↓
+Finding comparison
+   ↓
+PR report
+```
+
+### How It Works:
+1. **Safe Git Operations**: Invokes Git strictly through `child_process.execFile` in read-only mode (`git rev-parse`, `git diff`, `git show`, `git merge-base`). Never modifies working tree, never checks out branches, never executes repository scripts.
+2. **Whole-Repository Shadow Context**: Reconstructs base file versions for changed files using in-memory/temp shadow buffers, keeping untouched files referenced directly on disk. Runs all 26 rules across full architectural relationships.
+3. **Three-Way Finding Categorization**:
+   - **New Findings**: Issues introduced by added or modified lines in the pull request.
+   - **Touched Findings**: Pre-existing issues within files touched by the diff.
+   - **Resolved Findings**: Issues previously present that were eliminated by the PR.
+4. **Health & Category Impact**: Computes overall health score delta (`91 → 84 (-7 points)`) and per-category scoring shifts (Security, Quality, Testing, etc.).
+5. **Git Resilience**: Gracefully handles detached HEAD states, shallow clones (providing actionable fetch guidance), merge commits, and binary files.
+
+Example terminal output:
+```text
+                   FATHOM PR ANALYSIS
+────────────────────────────────────────────────────────
+
+Changed:
+  8 files
+  +312 lines
+  -87 lines
+
+Health:
+  91 → 84
+  -7 points
+
+NEW FINDINGS
+  🔴 SEC-002
+  Potential secret detected
+
+  🟠 QUAL-004
+  Empty catch block
+
+RESOLVED
+  ✓ TEST-004
+
+CATEGORY IMPACT
+  Security       -12
+  Quality         -4
+  Testing         +3
+
+VERDICT
+  ⚠ Changes introduce 2 findings
+```
 
 ---
 

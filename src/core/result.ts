@@ -1,6 +1,7 @@
 import type { Category } from '../rules/categories.js';
 import type { Finding } from './findings.js';
 import type { ComparisonResult } from '../baseline/types.js';
+import type { PRAnalysisResult } from '../diff/types.js';
 
 /**
  * Metrics produced by an analyzer.
@@ -100,4 +101,6 @@ export interface AnalysisResult {
   durationMs: number;
   /** Optional comparison against baseline when --compare is used */
   comparison?: ComparisonResult;
+  /** Optional PR analysis when --diff is used */
+  prAnalysis?: PRAnalysisResult;
 }

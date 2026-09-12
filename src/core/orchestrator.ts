@@ -32,6 +32,8 @@ export interface OrchestratorOptions {
   targetPath?: string;
   /** Additional ignore patterns */
   ignorePatterns?: string[];
+  /** Optional pre-built repository context */
+  context?: RepositoryContext;
 }
 
 /**
@@ -114,7 +116,8 @@ export async function runAnalysis(
 
   // Build shared context
   logger.debug('Building repository context...');
-  const context = await buildRepositoryContext(targetPath, options.ignorePatterns ?? []);
+  const context =
+    options.context ?? (await buildRepositoryContext(targetPath, options.ignorePatterns ?? []));
 
   // Run analyzers — parallel but capped to avoid thrashing
   const analyzers = registry.getAll();

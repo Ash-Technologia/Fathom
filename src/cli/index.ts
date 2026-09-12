@@ -21,6 +21,10 @@ program
     '--compare',
     'Compare current analysis against .fathom/baseline.json and report regressions',
   )
+  .option(
+    '--diff [ref]',
+    'Analyze changes introduced by Git diff against base ref (default: auto-detect)',
+  )
   .action(
     async (
       targetPath: string,
@@ -34,6 +38,7 @@ program
         verbose?: boolean;
         baseline?: boolean;
         compare?: boolean;
+        diff?: string | boolean;
       },
     ) => {
       await analyzeCommand(targetPath, options);

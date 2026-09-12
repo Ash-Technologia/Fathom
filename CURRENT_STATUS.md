@@ -207,7 +207,28 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 8. Integrations & Automation
+## 8. Pull Request & Git Diff Intelligence (`--diff`)
+
+Fathom features a native, local-first PR intelligence engine (`fathom --diff [ref]`):
+- **Whole-Repository Context**: Changes are analyzed not in isolation, but by reconstructing base states in lightweight shadow buffers for changed files while referencing untouched files directly on disk.
+- **Strict Read-Only Git Execution**:
+  - Uses `child_process.execFile` with argument arrays.
+  - Never runs repository scripts.
+  - Never mutates working tree or checks out branches.
+- **Git Resilience**:
+  - Handles shallow clones (with actionable fetch suggestions).
+  - Handles detached HEAD seamlessly.
+  - Handles missing base refs with clear error messages.
+  - Handles merge commits via `git merge-base`.
+- **Finding Classification**:
+  - `newFindings`: Newly introduced issues in changed lines/files.
+  - `touchedFindings`: Pre-existing issues within touched files.
+  - `resolvedFindings`: Issues present in base but fixed in the diff.
+- **Impact Metrics**: Overall health score delta and category impact breakdowns.
+
+---
+
+## 9. Integrations & Automation
 
 1. **GitHub Action (`action.yml`)**:
    - Repository acts directly as a composite GitHub Action supporting SARIF, HTML, JSON, and threshold gating:
@@ -227,15 +248,16 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 9. Current Test & Quality Matrix
+## 10. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 10 test files, 48/48 tests passing (~1.9s runtime). |
+| **Vitest Tests** | 🟢 Passed | 12 test files, 55/55 tests passing (~1.8s runtime). |
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
+| **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |
 | **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |
 | **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **98 / 100 (Excellent)**. |
 

@@ -94,3 +94,14 @@ export class FathomBaselineCorruptError extends FathomBaselineError {
     this.name = 'FathomBaselineCorruptError';
   }
 }
+
+/**
+ * Thrown when a Git diff operation fails or a base ref cannot be resolved.
+ * Results in exit code 2.
+ */
+export class FathomGitDiffError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FathomGitDiffError';
+  }
+}

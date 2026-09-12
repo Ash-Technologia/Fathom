@@ -5,6 +5,8 @@ import { SEVERITY_LABELS } from '../rules/severity.js';
 import { bandLabel } from '../scoring/score.js';
 import { formatDuration } from '../utils/timing.js';
 
+import type { PRAnalysisResult } from '../diff/types.js';
+
 const NO_COLOR = process.env['NO_COLOR'] !== undefined || process.env['TERM'] === 'dumb';
 const WIDTH = 56;
 
@@ -43,11 +45,32 @@ function severityColor(severity: string): (s: string) => string {
   }
 }
 
+function getSeverityIcon(severity: string): string {
+  switch (severity) {
+    case 'critical':
+    case 'high':
+      return '🔴';
+    case 'medium':
+      return '🟠';
+    case 'low':
+      return '🟡';
+    case 'info':
+      return 'ℹ';
+    default:
+      return '•';
+  }
+}
+
 /**
  * Terminal reporter — clean, minimal, color-aware output.
  */
 export class TerminalReporter {
   async report(result: AnalysisResult, ciMode = false, verbose = false): Promise<void> {
+    if (result.prAnalysis) {
+      this.printPRReport(result.prAnalysis);
+      return;
+    }
+
     if (result.comparison) {
       this.printComparisonReport(result, ciMode, verbose);
       return;
@@ -167,6 +190,79 @@ export class TerminalReporter {
         `Compared in ${duration} against baseline from ${comp.baselineTimestamp}\n\n`,
       ),
     );
+  }
+
+  private printPRReport(pr: PRAnalysisResult): void {
+    process.stdout.write('\n');
+    process.stdout.write(color(chalk.bold, center('FATHOM PR ANALYSIS')) + '\n');
+    process.stdout.write(color(chalk.dim, hr()) + '\n\n');
+
+    // Changed:
+    process.stdout.write(color(chalk.bold, 'Changed:') + '\n');
+    process.stdout.write(
+      `  ${pr.stats.filesChanged} file${pr.stats.filesChanged === 1 ? '' : 's'}\n`,
+    );
+    process.stdout.write(`  ${color(chalk.green, `+${pr.stats.linesAdded} lines`)}\n`);
+    process.stdout.write(`  ${color(chalk.red, `-${pr.stats.linesRemoved} lines`)}\n\n`);
+
+    // Health:
+    process.stdout.write(color(chalk.bold, 'Health:') + '\n');
+    process.stdout.write(`  ${pr.baseScore} → ${pr.currentScore}\n`);
+    const deltaStr =
+      pr.scoreDelta > 0
+        ? `+${pr.scoreDelta} points`
+        : pr.scoreDelta < 0
+          ? `${pr.scoreDelta} points`
+          : `0 points`;
+    const deltaColor = pr.scoreDelta > 0 ? chalk.green : pr.scoreDelta < 0 ? chalk.red : chalk.gray;
+    process.stdout.write(`  ${color(deltaColor, deltaStr)}\n\n`);
+
+    // NEW FINDINGS
+    if (pr.newFindings.length > 0) {
+      process.stdout.write(color(chalk.bold.red, 'NEW FINDINGS') + '\n');
+      for (const finding of pr.newFindings) {
+        const icon = getSeverityIcon(finding.severity);
+        process.stdout.write(`  ${icon} ${color(chalk.bold, finding.ruleId)}\n`);
+        process.stdout.write(`  ${finding.title}\n\n`);
+      }
+    }
+
+    // RESOLVED
+    if (pr.resolvedFindings.length > 0) {
+      process.stdout.write(color(chalk.bold.green, 'RESOLVED') + '\n');
+      for (const finding of pr.resolvedFindings) {
+        process.stdout.write(`  ${color(chalk.green, '✓')} ${color(chalk.bold, finding.ruleId)}\n`);
+        process.stdout.write(`  ${finding.title}\n\n`);
+      }
+    }
+
+    // TOUCHED FINDINGS (if any)
+    if (pr.touchedFindings.length > 0) {
+      process.stdout.write(color(chalk.bold.yellow, 'TOUCHED EXISTING FINDINGS') + '\n');
+      for (const finding of pr.touchedFindings) {
+        const icon = getSeverityIcon(finding.severity);
+        process.stdout.write(`  ${icon} ${color(chalk.bold, finding.ruleId)}\n`);
+        process.stdout.write(`  ${finding.title}\n\n`);
+      }
+    }
+
+    // CATEGORY IMPACT
+    if (pr.categoryImpact.length > 0) {
+      process.stdout.write(color(chalk.bold, 'CATEGORY IMPACT') + '\n');
+      for (const ci of pr.categoryImpact) {
+        const label = (CATEGORY_LABELS[ci.category] ?? ci.category).padEnd(15);
+        const sign = ci.delta > 0 ? '+' : '';
+        const dColor = ci.delta > 0 ? chalk.green : chalk.red;
+        process.stdout.write(`  ${label} ${color(dColor, `${sign}${ci.delta}`)}\n`);
+      }
+      process.stdout.write('\n');
+    }
+
+    // VERDICT
+    process.stdout.write(color(chalk.bold, 'VERDICT') + '\n');
+    const vIcon = pr.verdict.passed ? color(chalk.green, '✓') : color(chalk.yellow, '⚠');
+    const vColor = pr.verdict.passed ? chalk.green : chalk.yellow;
+    process.stdout.write(`  ${vIcon} ${color(vColor, pr.verdict.summary)}\n\n`);
   }
 
   private printHeader(result: AnalysisResult, ciMode: boolean): void {

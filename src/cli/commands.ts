@@ -12,10 +12,13 @@ import {
   FathomRepositoryError,
   FathomBaselineMissingError,
   FathomBaselineCorruptError,
+  FathomGitDiffError,
 } from '../core/errors.js';
 import { saveBaseline, loadBaseline } from '../baseline/baseline.js';
 import { compareWithBaseline } from '../baseline/compare.js';
 import type { BaselineData } from '../baseline/types.js';
+import { analyzePR } from '../diff/analyzer.js';
+import { buildRepositoryContext } from '../core/context.js';
 
 export interface AnalyzeOptions {
   json?: boolean;
@@ -31,6 +34,8 @@ export interface AnalyzeOptions {
   baseline?: boolean;
   /** Compare current analysis against .fathom/baseline.json */
   compare?: boolean;
+  /** Analyze changes introduced by Git diff against base ref */
+  diff?: string | boolean;
 }
 
 /**
@@ -124,6 +129,25 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     result.comparison = compareWithBaseline(result, baseline);
   }
 
+  // Attach PR diff analysis if requested
+  if (options.diff !== undefined) {
+    try {
+      const currentContext = await buildRepositoryContext(resolvedPath, config.ignore ?? []);
+      result.prAnalysis = await analyzePR(resolvedPath, {
+        baseRef: options.diff,
+        ignorePatterns: config.ignore ?? [],
+        currentResult: result,
+        currentContext,
+      });
+    } catch (err) {
+      if (err instanceof FathomGitDiffError) {
+        process.stderr.write(`Error: ${err.message}\n`);
+        process.exit(2);
+      }
+      throw err;
+    }
+  }
+
   // Save baseline if requested
   if (options.baseline) {
     try {
@@ -193,6 +217,16 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   if (isCIMode && options.compare && result.comparison?.isRegression) {
     process.stderr.write(`\nRegression detected compared to baseline. Exiting with code 1.\n`);
     process.exit(1);
+  }
+
+  // CI mode PR diff check: fail build if changes introduce new findings or regression
+  if (isCIMode && options.diff !== undefined && result.prAnalysis) {
+    if (!result.prAnalysis.verdict.passed) {
+      process.stderr.write(
+        `\nPR analysis check failed: ${result.prAnalysis.verdict.summary}. Exiting with code 1.\n`,
+      );
+      process.exit(1);
+    }
   }
 
   // CI mode: exit 1 on any critical or high finding (no score threshold —
