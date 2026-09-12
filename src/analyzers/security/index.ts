@@ -145,7 +145,7 @@ export class SecurityAnalyzer implements Analyzer {
           id: createFindingId('SEC-003', file.relativePath),
           ruleId: 'SEC-003',
           category: 'security',
-          severity: 'high',
+          severity: 'critical',
           title: `Potential private key file: ${file.relativePath}`,
           description:
             'This file may contain a private key and should not be committed to the repository.',

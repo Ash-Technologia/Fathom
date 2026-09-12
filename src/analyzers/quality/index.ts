@@ -10,18 +10,19 @@ import { computeDepth } from '../../utils/paths.js';
 const TODO_PATTERN = /\bTODO\b/gi;
 const FIXME_PATTERN = /\bFIXME\b/gi;
 
-/** Debug statement patterns per language */
-const DEBUG_PATTERNS: RegExp[] = [
-  // JavaScript/TypeScript
+/** Debug statement patterns for JS/TS */
+const DEBUG_PATTERNS_JS: RegExp[] = [
   /\bconsole\.(log|debug|info|warn|error|trace|dir)\s*\(/,
   /\bdebugger\b/,
-  // Python
-  /\bprint\s*\(/,
-  /\bpdb\.set_trace\(\)/,
-  /\bbreakpoint\(\)/,
-  // General
   /\bdd\s*\(/, // Laravel dd()
   /\bvar_dump\s*\(/, // PHP
+];
+
+/** Debug statement patterns for Python only */
+const DEBUG_PATTERNS_PYTHON: RegExp[] = [
+  /\bpdb\.set_trace\(\)/,
+  /\bbreakpoint\(\)/,
+  /\bprint\s*\(/, // print() is a debug signal in Python source (not test/script) files
 ];
 
 /** Empty catch block patterns */
@@ -77,11 +78,13 @@ export class QualityAnalyzer implements Analyzer {
       const fixmesInFile = (content.match(FIXME_PATTERN) ?? []).length;
       totalFixmes += fixmesInFile;
 
-      // QUAL-003: Debug statements (line-by-line to avoid false positives in comments/strings somewhat)
+      // QUAL-003: Debug statements — language-aware
+      const isPython = file.extension === '.py' || file.extension === '.pyw';
+      const debugPatterns = isPython ? DEBUG_PATTERNS_PYTHON : DEBUG_PATTERNS_JS;
       for (const line of lines) {
         // Skip pure comment lines
         if (/^\s*(\/\/|#|\/\*)/.test(line)) continue;
-        for (const pattern of DEBUG_PATTERNS) {
+        for (const pattern of debugPatterns) {
           if (pattern.test(line)) {
             totalDebugStatements++;
             break;
@@ -165,7 +168,7 @@ export class QualityAnalyzer implements Analyzer {
       });
     }
 
-    if (totalDebugStatements > 5) {
+    if (totalDebugStatements > 3) {
       findings.push({
         id: createFindingId('QUAL-003'),
         ruleId: 'QUAL-003',

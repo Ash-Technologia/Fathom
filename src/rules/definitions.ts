@@ -369,4 +369,14 @@ export const RULE_DEFINITIONS: Record<string, RuleDefinition> = {
     description: 'Detect whether the CI workflow appears to run a build step.',
     enabledByDefault: true,
   },
+
+  // Architecture
+  'ARCH-001': {
+    id: 'ARCH-001',
+    name: 'Architecture Layout',
+    category: 'architecture',
+    severity: 'info',
+    description: 'Detect high-level architectural patterns and layout.',
+    enabledByDefault: true,
+  },
 };

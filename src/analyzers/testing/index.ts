@@ -58,6 +58,21 @@ export class TestingAnalyzer implements Analyzer {
 
     const testDirs = [...allDirs].filter((d) => TEST_DIR_NAMES.has(d.toLowerCase()));
 
+    if (testDirs.length === 0 && context.files.filter((f) => f.isSource).length > 0) {
+      findings.push({
+        id: createFindingId('TEST-001'),
+        ruleId: 'TEST-001',
+        category: 'testing',
+        severity: 'low',
+        title: 'No standard test directory found',
+        description:
+          'No directories matching common test naming conventions (test, tests, __tests__, spec, etc.) were detected.',
+        recommendation: 'Create a test directory and add tests for your source code.',
+        confidence: 0.8,
+        autoFixable: false,
+      });
+    }
+
     // TEST-002: Test files
     if (testFiles.length === 0) {
       findings.push({

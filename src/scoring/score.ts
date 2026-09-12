@@ -19,7 +19,10 @@ export function calculateCategoryScore(category: Category, findings: Finding[]):
   let score = 100;
 
   for (const finding of categoryFindings) {
-    const penalty = SEVERITY_PENALTIES[finding.severity] ?? 0;
+    const basePenalty = SEVERITY_PENALTIES[finding.severity] ?? 0;
+    // Weight penalty by confidence so heuristic findings (confidence < 1) have
+    // proportionally less impact than fully deterministic findings (confidence ~1).
+    const penalty = basePenalty * finding.confidence;
     score -= penalty;
   }
 

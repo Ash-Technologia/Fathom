@@ -29,7 +29,9 @@ describe('Integration Fixture Tests', () => {
 
     // Should detect either SEC-001 (.env), SEC-002 (secrets in source), SEC-003 (id_rsa), or SEC-004 (secrets.json)
     const ruleIds = secFindings.map((f) => f.ruleId);
-    expect(ruleIds.some((r) => ['SEC-001', 'SEC-002', 'SEC-003', 'SEC-004', 'SEC-005'].includes(r))).toBe(true);
+    expect(
+      ruleIds.some((r) => ['SEC-001', 'SEC-002', 'SEC-003', 'SEC-004', 'SEC-005'].includes(r)),
+    ).toBe(true);
 
     // Score should be penalised
     expect(result.score.categories.find((c) => c.category === 'security')?.score).toBeLessThan(80);

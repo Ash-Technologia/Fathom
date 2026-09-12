@@ -29,8 +29,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CLI Options**:
   - `fathom [path]`: Analyze repository at path.
   - `--json`: Machine-readable JSON output.
+  - `-o, --output <file>`: Write JSON report directly to file.
+  - `--verbose`: Display all findings without the 10-item cap.
   - `--html [file]`: Interactive HTML report.
-  - `--ci`: CI mode with compact logging and error codes.
+  - `--ci`: CI mode with compact logging and deterministic exit codes.
   - `--fail-under <n>`: Automated exit code 1 if health score is below threshold.
 - **Configuration**: `.fathom.json` configuration loader with ignore glob patterns and rule overrides.
 - **Fixtures & Tests**: Full suite of unit tests and fixture-based integration tests (`healthy-node`, `insecure-node`, `minimal-python`, `no-git`, `empty`, `malformed`).
+
+### Fixed
+- **Git Repo Scoping**: Scoped `isGitRepository` strictly to the target folder to prevent detecting parent `.git` repositories in nested tests/workspaces.
+- **CLI Analyzer Registry**: Replaced duplicate analyzer instantiation with `createDefaultRegistry()` for consistency.
+- **CI Exit Codes**: Ensured CI exit code 1 triggers on any high or critical finding regardless of composite health score.
+- **Finding Emission**: Implemented missing `TEST-001` (missing test directories) and `DEP-001` (missing dependency manifest) findings.
+- **Security Severity**: Corrected private key detection (`SEC-003`) severity to `critical`.
+- **Confidence-Weighted Scoring**: Applied finding confidence as a multiplier to penalty deductions so heuristic checks don't disproportionately penalize scores.
+- **Python Quality False Positives**: Tuned `QUAL-003` debug statement detection to distinguish Python `print()` statements from JavaScript `console.log`.
+

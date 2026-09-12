@@ -47,10 +47,10 @@ function severityColor(severity: string): (s: string) => string {
  * Terminal reporter — clean, minimal, color-aware output.
  */
 export class TerminalReporter {
-  async report(result: AnalysisResult, ciMode = false): Promise<void> {
+  async report(result: AnalysisResult, ciMode = false, verbose = false): Promise<void> {
     this.printHeader(result, ciMode);
     this.printScore(result, ciMode);
-    this.printFindings(result, ciMode);
+    this.printFindings(result, ciMode, verbose);
     this.printNextSteps(result, ciMode);
     this.printFooter(result, ciMode);
   }
@@ -115,7 +115,7 @@ export class TerminalReporter {
     process.stdout.write('\n');
   }
 
-  private printFindings(result: AnalysisResult, ciMode: boolean): void {
+  private printFindings(result: AnalysisResult, ciMode: boolean, verbose = false): void {
     const actionable = result.findings.filter((f) => f.severity !== 'info');
     if (actionable.length === 0) {
       process.stdout.write(color(chalk.dim, hr()) + '\n\n');
@@ -127,8 +127,8 @@ export class TerminalReporter {
     process.stdout.write(color(chalk.dim, hr()) + '\n\n');
     process.stdout.write(color(chalk.bold, 'ATTENTION') + '\n\n');
 
-    // In CI mode show all; in terminal show top 10
-    const toShow = ciMode ? actionable : actionable.slice(0, 10);
+    // In CI or verbose mode show all; in normal terminal show top 10
+    const toShow = ciMode || verbose ? actionable : actionable.slice(0, 10);
 
     let lastSeverity = '';
     for (const finding of toShow) {
@@ -150,11 +150,11 @@ export class TerminalReporter {
       }
     }
 
-    if (actionable.length > 10 && !ciMode) {
+    if (actionable.length > 10 && !ciMode && !verbose) {
       process.stdout.write(
         color(
           chalk.dim,
-          `\n  ... and ${actionable.length - 10} more. Use --json for full output.\n`,
+          `\n  ... and ${actionable.length - 10} more. Use --verbose to view all, or --json for full output.\n`,
         ),
       );
     }

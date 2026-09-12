@@ -2,6 +2,7 @@ import type { Analyzer } from '../../core/analyzer.js';
 import type { RepositoryContext } from '../../core/context.js';
 import type { AnalyzerResult, Metrics } from '../../core/result.js';
 import type { Finding } from '../../core/findings.js';
+import { createFindingId } from '../../core/findings.js';
 import { createTimer } from '../../utils/timing.js';
 
 export class ArchitectureAnalyzer implements Analyzer {
@@ -71,6 +72,20 @@ export class ArchitectureAnalyzer implements Analyzer {
     if (hasPublicDir) observations.push('Public/static assets directory');
     if (hasSrcDir) observations.push('Source organized under src/');
     if (hasDocsDir) observations.push('Documentation directory present');
+
+    if (observations.length > 0) {
+      findings.push({
+        id: createFindingId('ARCH-001'),
+        ruleId: 'ARCH-001',
+        category: 'architecture',
+        severity: 'info',
+        title: `Architecture layout: ${observations.slice(0, 2).join(', ')}`,
+        description: `Project architectural structure detected: ${observations.join('; ')}.`,
+        recommendation: 'Maintain separation of concerns and clear boundary interfaces.',
+        confidence: 0.9,
+        autoFixable: false,
+      });
+    }
 
     const metrics: Metrics = {
       hasFrontend,

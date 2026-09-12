@@ -1,57 +1,31 @@
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import ora from 'ora';
-import { AnalyzerRegistry } from '../core/analyzer.js';
-import { runAnalysis } from '../core/orchestrator.js';
+import { runAnalysis, createDefaultRegistry } from '../core/orchestrator.js';
 import { TerminalReporter } from '../reporters/terminal.js';
 import { JsonReporter } from '../reporters/json.js';
 import { HtmlReporter } from '../reporters/html.js';
 import { loadConfig } from './options.js';
 import { FathomConfigError, FathomRepositoryError } from '../core/errors.js';
 
-// Analyzers
-import { ProjectAnalyzer } from '../analyzers/project/index.js';
-import { GitAnalyzer } from '../analyzers/git/index.js';
-import { SecurityAnalyzer } from '../analyzers/security/index.js';
-import { DependencyAnalyzer } from '../analyzers/dependencies/index.js';
-import { QualityAnalyzer } from '../analyzers/quality/index.js';
-import { TestingAnalyzer } from '../analyzers/testing/index.js';
-import { DocumentationAnalyzer } from '../analyzers/documentation/index.js';
-import { CICDAnalyzer } from '../analyzers/cicd/index.js';
-import { ArchitectureAnalyzer } from '../analyzers/architecture/index.js';
-
 export interface AnalyzeOptions {
   json?: boolean;
   html?: string | boolean;
   ci?: boolean;
   failUnder?: number;
+  /** Show all findings in terminal output (no 10-finding cap) */
+  verbose?: boolean;
+  /** Write JSON output to this file instead of stdout */
+  output?: string;
 }
 
 /**
  * Exit codes:
  * 0 = success
- * 1 = analysis completed but threshold triggered
+ * 1 = analysis completed but threshold / high-severity findings triggered
  * 2 = invalid usage / config error
  * 3 = unexpected failure
  */
-
-/**
- * Build the default analyzer registry.
- */
-function buildRegistry(): AnalyzerRegistry {
-  const registry = new AnalyzerRegistry();
-  registry
-    .register(new ProjectAnalyzer())
-    .register(new GitAnalyzer())
-    .register(new SecurityAnalyzer())
-    .register(new DependencyAnalyzer())
-    .register(new QualityAnalyzer())
-    .register(new TestingAnalyzer())
-    .register(new DocumentationAnalyzer())
-    .register(new CICDAnalyzer())
-    .register(new ArchitectureAnalyzer());
-  return registry;
-}
 
 /**
  * The main analyze command.
@@ -59,6 +33,7 @@ function buildRegistry(): AnalyzerRegistry {
 export async function analyzeCommand(targetPath: string, options: AnalyzeOptions): Promise<void> {
   const isJsonMode = options.json === true;
   const isCIMode = options.ci === true;
+  const isVerbose = options.verbose === true;
 
   // Validate repository path
   const resolvedPath = path.resolve(targetPath);
@@ -98,7 +73,7 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
 
   let result;
   try {
-    const registry = buildRegistry();
+    const registry = createDefaultRegistry();
     result = await runAnalysis(registry, {
       repositoryPath: resolvedPath,
       ignorePatterns: config.ignore ?? [],
@@ -118,24 +93,30 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   // Report
   if (isJsonMode) {
     const reporter = new JsonReporter();
-    await reporter.report(result);
+    if (options.output) {
+      // Write JSON to file
+      const json = JSON.stringify(result, null, 2);
+      await fs.writeFile(options.output, json, 'utf8');
+      process.stderr.write(`JSON report written to: ${options.output}\n`);
+    } else {
+      await reporter.report(result);
+    }
   } else if (options.html !== undefined) {
     const htmlPath =
       typeof options.html === 'string' && options.html !== '' ? options.html : 'fathom-report.html';
 
-    // Also print terminal report
     const termReporter = new TerminalReporter();
-    await termReporter.report(result, isCIMode);
+    await termReporter.report(result, isCIMode, isVerbose);
 
     const htmlReporter = new HtmlReporter();
     await htmlReporter.report(result, htmlPath);
     process.stdout.write(`HTML report written to: ${htmlPath}\n`);
   } else {
     const termReporter = new TerminalReporter();
-    await termReporter.report(result, isCIMode);
+    await termReporter.report(result, isCIMode, isVerbose);
   }
 
-  // --fail-under threshold
+  // --fail-under threshold check
   const threshold = options.failUnder;
   if (typeof threshold === 'number') {
     if (result.score.overall < threshold) {
@@ -148,12 +129,16 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     }
   }
 
-  // In CI mode, exit 1 if there are any high/critical findings
+  // CI mode: exit 1 on any critical or high finding (no score threshold —
+  // a single leaked key must fail CI even if overall score is 90).
   if (isCIMode && typeof threshold !== 'number') {
-    const critical = result.findings.filter(
+    const blocking = result.findings.filter(
       (f) => f.severity === 'critical' || f.severity === 'high',
     );
-    if (critical.length > 0 && result.score.overall < 70) {
+    if (blocking.length > 0) {
+      process.stderr.write(
+        `\n${blocking.length} critical/high finding${blocking.length > 1 ? 's' : ''} detected. Exiting with code 1.\n`,
+      );
       process.exit(1);
     }
   }

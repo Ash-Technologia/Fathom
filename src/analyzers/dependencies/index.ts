@@ -48,6 +48,22 @@ export class DependencyAnalyzer implements Analyzer {
     // DEP-001: Manifest detection
     const manifests = Object.keys(MANIFEST_TO_LOCKFILES).filter((m) => rootFileSet.has(m));
 
+    if (manifests.length === 0) {
+      findings.push({
+        id: createFindingId('DEP-001'),
+        ruleId: 'DEP-001',
+        category: 'dependencies',
+        severity: 'info',
+        title: 'No package manifest detected',
+        description:
+          'No recognised package manifest (package.json, pyproject.toml, Cargo.toml, go.mod, etc.) was found.',
+        recommendation:
+          'If this project has dependencies, add the appropriate manifest for your ecosystem.',
+        confidence: 0.8,
+        autoFixable: false,
+      });
+    }
+
     // DEP-002 + DEP-003: Lockfile detection
     const lockfilesFound = context.manifests.lockfiles;
     let dependencyCount = 0;

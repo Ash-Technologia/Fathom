@@ -125,10 +125,16 @@ fathom /path/to/repo
 # Output machine-readable JSON to stdout
 fathom --json
 
+# Save JSON report directly to a file
+fathom --json -o report.json
+
+# Display all findings without truncation (disables the default 10-finding limit)
+fathom --verbose
+
 # Generate self-contained HTML report
 fathom --html report.html
 
-# Run in CI mode (minimal decorations, machine exit codes)
+# Run in CI mode (compact logging, fails if critical/high findings exist)
 fathom --ci
 
 # Fail CI build if overall health score is below threshold

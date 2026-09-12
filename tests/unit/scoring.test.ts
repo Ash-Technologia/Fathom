@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { calculateCategoryScore, calculateHealthScore, bandLabel } from '../../src/scoring/score.js';
+import {
+  calculateCategoryScore,
+  calculateHealthScore,
+  bandLabel,
+} from '../../src/scoring/score.js';
 import { CATEGORY_WEIGHTS } from '../../src/scoring/weights.js';
 import { clampConfidence, confidenceLabel } from '../../src/scoring/confidence.js';
 import type { Finding } from '../../src/core/findings.js';
@@ -70,7 +74,7 @@ describe('Scoring Engine', () => {
 
     expect(confidenceLabel(0.99)).toBe('deterministic');
     expect(confidenceLabel(0.85)).toBe('high');
-    expect(confidenceLabel(0.70)).toBe('medium');
-    expect(confidenceLabel(0.50)).toBe('low');
+    expect(confidenceLabel(0.7)).toBe('medium');
+    expect(confidenceLabel(0.5)).toBe('low');
   });
 });

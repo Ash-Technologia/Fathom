@@ -66,7 +66,7 @@ describe('Findings Model', () => {
       title: 'High 0.80',
       description: 'Desc',
       recommendation: 'Rec',
-      confidence: 0.80,
+      confidence: 0.8,
       autoFixable: false,
     };
 
