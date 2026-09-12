@@ -43,10 +43,18 @@ async function runGit(cwd: string, args: string[]): Promise<GitCommandResult> {
 
 /**
  * Check whether the directory is a Git repository.
+ *
+ * We use `--absolute-git-dir` and verify the returned path is within
+ * `root` so that subdirectories nested inside a parent repo are not
+ * mistakenly reported as repos (e.g. test fixtures living inside Fathom).
  */
 export async function isGitRepository(root: string): Promise<boolean> {
-  const result = await runGit(root, ['rev-parse', '--git-dir']);
-  return result.exitCode === 0;
+  const result = await runGit(root, ['rev-parse', '--absolute-git-dir']);
+  if (result.exitCode !== 0) return false;
+  // Normalise both paths with trailing sep so prefix matching is unambiguous
+  const normalizedRoot = path.resolve(root) + path.sep;
+  const gitDir = path.resolve(result.stdout) + path.sep;
+  return gitDir.startsWith(normalizedRoot);
 }
 
 /**
