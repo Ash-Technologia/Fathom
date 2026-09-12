@@ -30,6 +30,7 @@ program
     'Generate Markdown PR summary (writes to GITHUB_STEP_SUMMARY or specified file)',
   )
   .option('--pr-comment', 'Post PR summary comment to GitHub pull request (requires GITHUB_TOKEN)')
+  .option('--architecture', 'Display architecture model, layers, and boundary checks')
   .action(
     async (
       targetPath: string,
@@ -46,6 +47,7 @@ program
         diff?: string | boolean;
         summary?: string | boolean;
         prComment?: boolean;
+        architecture?: boolean;
       },
     ) => {
       await analyzeCommand(targetPath, options);

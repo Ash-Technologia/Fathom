@@ -404,4 +404,48 @@ export class TerminalReporter {
     const duration = formatDuration(result.durationMs);
     process.stdout.write(color(chalk.dim, `Completed in ${duration}\n\n`));
   }
+
+  printArchitectureReport(result: AnalysisResult): void {
+    process.stdout.write('\n');
+    process.stdout.write(color(chalk.bold, 'Architecture') + '\n\n');
+
+    const archResult = result.analyzers.find((a) => a.analyzerId === 'architecture');
+    let layers: Array<{ name: string; components: Array<{ name: string; fileCount: number }> }> =
+      [];
+
+    if (archResult?.metrics['layers'] && typeof archResult.metrics['layers'] === 'string') {
+      try {
+        layers = JSON.parse(archResult.metrics['layers']) as typeof layers;
+      } catch {
+        // ignore
+      }
+    }
+
+    if (layers.length === 0) {
+      process.stdout.write('  No distinct architectural layers detected.\n\n');
+    } else {
+      for (const layer of layers) {
+        process.stdout.write(color(chalk.bold.cyan, layer.name) + '\n');
+        layer.components.forEach((comp, idx) => {
+          const isLast = idx === layer.components.length - 1;
+          const branch = isLast ? ' └── ' : ' ├── ';
+          process.stdout.write(color(chalk.dim, branch) + comp.name + '\n');
+        });
+        process.stdout.write('\n');
+      }
+    }
+
+    const archFindings = result.findings.filter(
+      (f) => f.category === 'architecture' && f.ruleId !== 'ARCH-001',
+    );
+    if (archFindings.length > 0) {
+      process.stdout.write(color(chalk.bold, 'Warnings:') + '\n');
+      for (const finding of archFindings) {
+        const icon = getSeverityIcon(finding.severity);
+        process.stdout.write(` ${icon} ${color(chalk.bold, finding.title)}\n`);
+        process.stdout.write(`    ${finding.description}\n`);
+      }
+      process.stdout.write('\n');
+    }
+  }
 }

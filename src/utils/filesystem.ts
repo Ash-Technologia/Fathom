@@ -129,6 +129,7 @@ export const BINARY_EXTENSIONS = new Set([
  */
 export const IGNORED_DIRECTORIES = [
   '.git',
+  '.fathom',
   'node_modules',
   'dist',
   'build',
@@ -161,6 +162,7 @@ export const IGNORED_DIRECTORIES = [
  */
 export const IGNORE_GLOB_PATTERNS = [
   '**/.git/**',
+  '**/.fathom/**',
   '**/node_modules/**',
   '**/dist/**',
   '**/build/**',

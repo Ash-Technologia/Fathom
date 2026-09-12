@@ -166,6 +166,9 @@ fathom --diff origin/main
 # PR analysis with machine-readable JSON output
 fathom --diff main --json
 
+# View architecture hierarchy and graph warnings in terminal
+fathom --architecture
+
 # Run in CI mode (compact logging, fails if critical/high findings exist)
 fathom --ci
 
@@ -277,6 +280,19 @@ Fathom supports deterministic repository baselines to detect regressions over ti
    - `fathom --compare --json`: Attaches regression comparison data to the JSON output.
    - `fathom --compare --html report.html`: Generates an interactive visual report with dedicated regression breakdown.
 
+---
+
+## 🏛️ Architecture Intelligence
+
+Fathom includes a lightweight in-memory architecture graph analyzer that inspects import/export topologies without executing project code:
+
+- **Static Import Parsing**: Scans ESM, CommonJS, dynamic imports, and Python modules.
+- **Path Alias Resolution**: Honors `tsconfig.json` / `jsconfig.json` `compilerOptions.paths` and `baseUrl`.
+- **Circular Dependency Detection (`ARCH-002`)**: Uses Tarjan's SCC algorithm to detect directed import loops.
+- **Layer Boundary Violations (`ARCH-003`)**: Detects backend code referencing UI components, or client code referencing server-only primitives (`child_process`, `fs`, `net`, etc.).
+- **Deep Coupling & Sizing (`ARCH-004`, `ARCH-005`)**: Flags excessive fan-out imports and large monolithic files requiring decomposition.
+- **Orphaned File Detection (`ARCH-006`)**: Identifies dead, unreferenced source modules.
+- **CLI View**: Run `fathom --architecture` for a visual tree of layers and graph warnings.
 
 ---
 
@@ -457,6 +473,11 @@ Fathom evaluates repositories across **9 isolated analyzers**:
 | `CI-003` | CI/CD | Test execution detected in CI | `medium` |
 | `CI-004` | CI/CD | Build step detected in CI | `low` |
 | `ARCH-001` | Architecture | Project layout & structure observations | `info` |
+| `ARCH-002` | Architecture | Circular import dependencies detected | `high` |
+| `ARCH-003` | Architecture | Suspicious cross-layer import or boundary violation | `high` |
+| `ARCH-004` | Architecture | Deep fan-out coupling to internal modules | `low` |
+| `ARCH-005` | Architecture | Large monolithic module decomposition indicator | `low` |
+| `ARCH-006` | Architecture | Orphaned source file unreferenced across repository | `info` |
 
 ---
 

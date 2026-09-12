@@ -130,6 +130,84 @@ function generateComparisonSection(comp: ComparisonResult): string {
   </div>`;
 }
 
+function generateArchitectureSection(result: AnalysisResult): string {
+  const archResult = result.analyzers.find((a) => a.analyzerId === 'architecture');
+  if (!archResult) return '';
+
+  let layers: Array<{ name: string; components: Array<{ name: string; fileCount: number }> }> = [];
+  let warnings: Array<{ type: string; severity: string; message: string; files: string[] }> = [];
+
+  if (archResult.metrics['layers'] && typeof archResult.metrics['layers'] === 'string') {
+    try {
+      layers = JSON.parse(archResult.metrics['layers']) as typeof layers;
+    } catch {
+      // ignore
+    }
+  }
+
+  if (archResult.metrics['warnings'] && typeof archResult.metrics['warnings'] === 'string') {
+    try {
+      warnings = JSON.parse(archResult.metrics['warnings']) as typeof warnings;
+    } catch {
+      // ignore
+    }
+  }
+
+  const nodeCount = archResult.metrics['nodeCount'] ?? 0;
+  const edgeCount = archResult.metrics['edgeCount'] ?? 0;
+
+  let layerHtml = '';
+  if (layers.length > 0) {
+    layerHtml = `
+      <div class="arch-layers-grid">
+        ${layers
+          .map(
+            (l) => `
+          <div class="arch-layer-card">
+            <div class="arch-layer-title">${escapeHtml(l.name)}</div>
+            <ul class="arch-layer-components">
+              ${l.components
+                .map(
+                  (c) =>
+                    `<li><strong>${escapeHtml(c.name)}</strong> (${c.fileCount} file${c.fileCount > 1 ? 's' : ''})</li>`,
+                )
+                .join('')}
+            </ul>
+          </div>`,
+          )
+          .join('')}
+      </div>`;
+  }
+
+  let warningsHtml = '';
+  if (warnings.length > 0) {
+    warningsHtml = `
+      <div class="arch-warnings-box">
+        <div class="arch-warnings-title">Architectural Warnings (${warnings.length})</div>
+        ${warnings
+          .map(
+            (w) => `
+          <div class="arch-warning-item">
+            <span class="arch-warning-icon">${w.type === 'circular' ? '🔴' : '🟠'}</span>
+            <span class="arch-warning-msg">${escapeHtml(w.message)}</span>
+          </div>`,
+          )
+          .join('')}
+      </div>`;
+  }
+
+  return `
+  <div class="section">
+    <div class="section-title">Architecture Overview</div>
+    <div class="arch-stats">
+      <span class="meta-item">📦 ${String(nodeCount)} Graph Nodes</span>
+      <span class="meta-item">🔗 ${String(edgeCount)} Dependency Edges</span>
+    </div>
+    ${layerHtml}
+    ${warningsHtml}
+  </div>`;
+}
+
 function generateHtml(result: AnalysisResult): string {
   const overallColor = scoreColor(result.score.overall);
   const catScores = result.score.categories.filter((c) => c.weight > 0);
@@ -194,6 +272,17 @@ function generateHtml(result: AnalysisResult): string {
     .comp-stat { background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; }
     .comp-stat-label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .35rem; }
     .comp-stat-val { font-size: 1.5rem; font-weight: 800; color: #f8fafc; }
+    .arch-stats { display: flex; gap: .75rem; margin-bottom: 1.25rem; }
+    .arch-layers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; margin-bottom: 1.25rem; }
+    .arch-layer-card { background: #1e293b; border-radius: 8px; padding: 1rem; border: 1px solid #334155; }
+    .arch-layer-title { font-weight: 700; color: #38bdf8; margin-bottom: .5rem; font-size: .95rem; }
+    .arch-layer-components { list-style: none; font-size: .85rem; color: #94a3b8; }
+    .arch-layer-components li { margin-bottom: .3rem; }
+    .arch-warnings-box { background: #1e293b; border-radius: 8px; padding: 1.25rem; border: 1px solid #ef444455; }
+    .arch-warnings-title { font-weight: 700; color: #f87171; margin-bottom: .75rem; font-size: .9rem; }
+    .arch-warning-item { display: flex; gap: .5rem; font-size: .85rem; margin-bottom: .4rem; line-height: 1.4; }
+    .arch-warning-icon { flex-shrink: 0; }
+    .arch-warning-msg { color: #cbd5e1; }
     footer { text-align: center; padding: 2rem 0; color: #475569; font-size: .8rem; border-top: 1px solid #1e293b; }
   </style>
 </head>
@@ -233,6 +322,8 @@ function generateHtml(result: AnalysisResult): string {
   </div>`
       : ''
   }
+
+  ${generateArchitectureSection(result)}
 
   <div class="section">
     <div class="section-title">Findings (${actionable.length})</div>

@@ -46,6 +46,8 @@ export interface AnalyzeOptions {
   summary?: string | boolean;
   /** Post PR summary comment to GitHub pull request (requires GITHUB_TOKEN) */
   prComment?: boolean;
+  /** Display architecture model, layers, and boundary checks */
+  architecture?: boolean;
 }
 
 /**
@@ -268,7 +270,11 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     process.stdout.write(`HTML report written to: ${htmlPath}\n`);
   } else {
     const termReporter = new TerminalReporter();
-    await termReporter.report(result, isCIMode, isVerbose);
+    if (options.architecture) {
+      termReporter.printArchitectureReport(result);
+    } else {
+      await termReporter.report(result, isCIMode, isVerbose);
+    }
   }
 
   // fail-under threshold check (CLI flag takes precedence over .fathom.json)
