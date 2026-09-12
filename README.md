@@ -137,10 +137,22 @@ fathom --verbose
 # Generate self-contained HTML report
 fathom --html report.html
 
+# Save a deterministic baseline to .fathom/baseline.json
+fathom --baseline
+
+# Compare current analysis against saved baseline and report regressions
+fathom --compare
+
+# Compare against baseline and output machine-readable JSON
+fathom --compare --json
+
+# Compare against baseline and generate interactive HTML report
+fathom --compare --html report.html
+
 # Run in CI mode (compact logging, fails if critical/high findings exist)
 fathom --ci
 
-# Fail CI build if overall health score is below threshold
+# Fail CI build if overall health score is below threshold or regression is detected
 fathom --ci --fail-under 80
 
 # Display version or help
@@ -153,9 +165,38 @@ fathom --help
 | Code | Meaning |
 |:----:|:--------|
 | **0** | Analysis successful and meets health thresholds |
-| **1** | Analysis complete, but `--fail-under` threshold failed or critical findings found in CI mode |
-| **2** | Invalid CLI usage or configuration syntax error |
+| **1** | Analysis complete, but `--fail-under` threshold failed, critical findings found in CI mode, or regression detected in CI mode |
+| **2** | Invalid CLI usage, missing/corrupted baseline, or configuration syntax error |
 | **3** | Repository access error or fatal system failure |
+
+---
+
+## 📉 Baseline & Regression Tracking
+
+Fathom supports deterministic repository baselines to detect regressions over time or during CI/CD checks:
+
+1. **Create a baseline**:
+   ```bash
+   fathom --baseline
+   ```
+   Analyzes the repository and saves `.fathom/baseline.json` containing only scores, metrics, rule IDs, and safe evidence — never secret values or repository source code.
+
+2. **Compare current analysis**:
+   ```bash
+   fathom --compare
+   ```
+   Detects:
+   - Overall health score change (e.g. `91 → 84 (-7)`)
+   - Category score changes
+   - Newly introduced findings (`+`)
+   - Resolved findings (`-`)
+   - Unchanged & modified findings
+   - Regression verdict (`REGRESSION: YES / NO`)
+
+3. **Export reports**:
+   - `fathom --compare --json`: Attaches regression comparison data to the JSON output.
+   - `fathom --compare --html report.html`: Generates an interactive visual report with dedicated regression breakdown.
+
 
 ---
 

@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import type { AnalysisResult, CategoryScore } from '../core/result.js';
+import type { ComparisonResult } from '../baseline/types.js';
 import { CATEGORY_LABELS } from '../rules/categories.js';
 import { bandLabel } from '../scoring/score.js';
 
@@ -85,6 +86,50 @@ function generateFindingCard(
     </div>`;
 }
 
+function generateComparisonSection(comp: ComparisonResult): string {
+  const verdictClass = comp.isRegression ? 'regression-yes' : 'regression-no';
+  const verdictText = comp.isRegression ? '⚠ REGRESSION DETECTED' : '✓ NO REGRESSIONS DETECTED';
+  const deltaStr =
+    comp.scoreDelta > 0
+      ? `+${comp.scoreDelta} ↑`
+      : comp.scoreDelta < 0
+        ? `${comp.scoreDelta} ↓`
+        : `0 →`;
+  const deltaColor = comp.scoreDelta > 0 ? '#22c55e' : comp.scoreDelta < 0 ? '#ef4444' : '#94a3b8';
+
+  return `
+  <div class="section comparison-section">
+    <div class="regression-badge ${verdictClass}">${verdictText}</div>
+    <div class="section-title" style="margin-top: 1.25rem;">Regression Analysis vs Baseline</div>
+    <div class="comparison-grid">
+      <div class="comp-stat">
+        <span class="comp-stat-label">Baseline Score</span>
+        <span class="comp-stat-val">${comp.baselineScore}</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-label">Current Score</span>
+        <span class="comp-stat-val">${comp.currentScore}</span>
+      </div>
+      <div class="comp-stat">
+        <span class="comp-stat-label">Score Change</span>
+        <span class="comp-stat-val" style="color: ${deltaColor}">${deltaStr}</span>
+      </div>
+    </div>
+    ${
+      comp.newFindings.length > 0
+        ? `<div style="margin-top: 1.25rem;"><div style="color: #ef4444; font-weight: 700; margin-bottom: .5rem;">+ New Findings (${comp.newFindings.length}):</div>
+            ${comp.newFindings.map((f, i) => generateFindingCard(f, i)).join('')}</div>`
+        : ''
+    }
+    ${
+      comp.resolvedFindings.length > 0
+        ? `<div style="margin-top: 1.25rem;"><div style="color: #22c55e; font-weight: 700; margin-bottom: .5rem;">- Resolved Findings (${comp.resolvedFindings.length}):</div>
+            ${comp.resolvedFindings.map((f, i) => generateFindingCard(f, i)).join('')}</div>`
+        : ''
+    }
+  </div>`;
+}
+
 function generateHtml(result: AnalysisResult): string {
   const overallColor = scoreColor(result.score.overall);
   const catScores = result.score.categories.filter((c) => c.weight > 0);
@@ -141,6 +186,14 @@ function generateHtml(result: AnalysisResult): string {
     .analyzer-name { font-size: .875rem; color: #cbd5e1; }
     .analyzer-status { font-size: .75rem; color: #64748b; }
     .no-findings { text-align: center; padding: 2.5rem; background: #1e293b; border-radius: 12px; color: #22c55e; }
+    .comparison-section { background: #1e293b; border-radius: 12px; padding: 1.5rem; border: 1px solid #334155; }
+    .regression-badge { display: inline-block; padding: .4rem 1rem; border-radius: 6px; font-weight: 700; font-size: .85rem; letter-spacing: .05em; }
+    .regression-yes { background: #dc2626; color: #ffffff; }
+    .regression-no { background: #16a34a; color: #ffffff; }
+    .comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1rem; }
+    .comp-stat { background: #0f172a; padding: 1rem; border-radius: 8px; text-align: center; }
+    .comp-stat-label { display: block; font-size: .8rem; color: #94a3b8; margin-bottom: .35rem; }
+    .comp-stat-val { font-size: 1.5rem; font-weight: 800; color: #f8fafc; }
     footer { text-align: center; padding: 2rem 0; color: #475569; font-size: .8rem; border-top: 1px solid #1e293b; }
   </style>
 </head>
@@ -155,6 +208,8 @@ function generateHtml(result: AnalysisResult): string {
       <span class="meta-item">v${escapeHtml(result.fathomVersion)}</span>
     </div>
   </header>
+
+  ${result.comparison ? generateComparisonSection(result.comparison) : ''}
 
   <div class="section">
     <div class="score-hero">

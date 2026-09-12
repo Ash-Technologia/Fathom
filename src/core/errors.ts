@@ -55,3 +55,42 @@ export class AnalyzerError extends Error {
     this.name = 'AnalyzerError';
   }
 }
+
+/**
+ * Base error for baseline operations.
+ */
+export class FathomBaselineError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'FathomBaselineError';
+  }
+}
+
+/**
+ * Thrown when a requested baseline file does not exist.
+ * Results in exit code 2.
+ */
+export class FathomBaselineMissingError extends FathomBaselineError {
+  constructor(public readonly baselinePath: string) {
+    super(
+      `Baseline file not found at ${baselinePath}.\nRun "fathom --baseline" to create an initial baseline.`,
+    );
+    this.name = 'FathomBaselineMissingError';
+  }
+}
+
+/**
+ * Thrown when a baseline file cannot be parsed or has an invalid schema.
+ * Results in exit code 2.
+ */
+export class FathomBaselineCorruptError extends FathomBaselineError {
+  constructor(
+    public readonly baselinePath: string,
+    public readonly reason: string,
+  ) {
+    super(
+      `Baseline file at ${baselinePath} is invalid or corrupted: ${reason}.\nRun "fathom --baseline" to regenerate the baseline.`,
+    );
+    this.name = 'FathomBaselineCorruptError';
+  }
+}

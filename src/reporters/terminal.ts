@@ -48,11 +48,125 @@ function severityColor(severity: string): (s: string) => string {
  */
 export class TerminalReporter {
   async report(result: AnalysisResult, ciMode = false, verbose = false): Promise<void> {
+    if (result.comparison) {
+      this.printComparisonReport(result, ciMode, verbose);
+      return;
+    }
+
     this.printHeader(result, ciMode);
     this.printScore(result, ciMode);
     this.printFindings(result, ciMode, verbose);
     this.printNextSteps(result, ciMode);
     this.printFooter(result, ciMode);
+  }
+
+  private printComparisonReport(result: AnalysisResult, _ciMode: boolean, verbose: boolean): void {
+    const comp = result.comparison;
+    if (!comp) return;
+    process.stdout.write('\n');
+    process.stdout.write(color(chalk.bold, center('FATHOM REGRESSION REPORT')) + '\n');
+    process.stdout.write(color(chalk.dim, hr()) + '\n\n');
+
+    // Health Score Delta
+    process.stdout.write(color(chalk.bold, 'Health Score') + '\n');
+    process.stdout.write(`  Baseline: ${comp.baselineScore}\n`);
+    process.stdout.write(`  Current:  ${comp.currentScore}\n`);
+    const deltaStr =
+      comp.scoreDelta > 0
+        ? `+${comp.scoreDelta} ↑`
+        : comp.scoreDelta < 0
+          ? `${comp.scoreDelta} ↓`
+          : `0 →`;
+    const deltaColor =
+      comp.scoreDelta > 0 ? chalk.green : comp.scoreDelta < 0 ? chalk.red : chalk.gray;
+    process.stdout.write(`  Change:   ${color(deltaColor, deltaStr)}\n\n`);
+
+    // Category Score Changes
+    const changedCategories = comp.categoryDiffs.filter((d) => d.delta !== 0);
+    if (changedCategories.length > 0) {
+      for (const cd of changedCategories) {
+        const catLabel = CATEGORY_LABELS[cd.category] ?? cd.category;
+        const arrow = cd.delta < 0 ? '🔴' : '🟢';
+        const dStr = cd.delta > 0 ? `+${cd.delta}` : `${cd.delta}`;
+        process.stdout.write(color(chalk.bold, catLabel) + '\n');
+        process.stdout.write(`  ${cd.baselineScore} → ${cd.currentScore}  ${dStr} ${arrow}\n\n`);
+      }
+    }
+
+    // New Findings
+    if (comp.newFindings.length > 0) {
+      process.stdout.write(
+        color(chalk.bold.red, 'New Findings') + ` (${comp.newFindings.length})\n`,
+      );
+      const toShow = verbose ? comp.newFindings : comp.newFindings.slice(0, 10);
+      for (const f of toShow) {
+        const loc = f.location?.file ? ` (${f.location.file})` : '';
+        process.stdout.write(color(chalk.red, `  + [${f.ruleId}] ${f.title}${loc}\n`));
+      }
+      if (!verbose && comp.newFindings.length > 10) {
+        process.stdout.write(
+          color(
+            chalk.dim,
+            `  ... and ${comp.newFindings.length - 10} more new findings (use --verbose)\n`,
+          ),
+        );
+      }
+      process.stdout.write('\n');
+    }
+
+    // Resolved Findings
+    if (comp.resolvedFindings.length > 0) {
+      process.stdout.write(
+        color(chalk.bold.green, 'Resolved Findings') + ` (${comp.resolvedFindings.length})\n`,
+      );
+      const toShow = verbose ? comp.resolvedFindings : comp.resolvedFindings.slice(0, 10);
+      for (const f of toShow) {
+        const loc = f.location?.file ? ` (${f.location.file})` : '';
+        process.stdout.write(color(chalk.green, `  - [${f.ruleId}] ${f.title}${loc}\n`));
+      }
+      if (!verbose && comp.resolvedFindings.length > 10) {
+        process.stdout.write(
+          color(
+            chalk.dim,
+            `  ... and ${comp.resolvedFindings.length - 10} more resolved findings (use --verbose)\n`,
+          ),
+        );
+      }
+      process.stdout.write('\n');
+    }
+
+    // Changed Findings (severity or confidence)
+    if (comp.changedFindings.length > 0) {
+      process.stdout.write(
+        color(chalk.bold.yellow, 'Changed Findings') + ` (${comp.changedFindings.length})\n`,
+      );
+      for (const cf of comp.changedFindings) {
+        const detail = cf.severityChanged
+          ? `${cf.baseline.severity} → ${cf.current.severity}`
+          : `confidence ${(cf.baseline.confidence * 100).toFixed(0)}% → ${(cf.current.confidence * 100).toFixed(0)}%`;
+        process.stdout.write(
+          color(chalk.yellow, `  ~ [${cf.current.ruleId}] ${cf.current.title} (${detail})\n`),
+        );
+      }
+      process.stdout.write('\n');
+    }
+
+    process.stdout.write(color(chalk.dim, hr()) + '\n\n');
+
+    // Regression Verdict
+    if (comp.isRegression) {
+      process.stdout.write(color(chalk.bold.bgRed.white, ' REGRESSION: YES ') + '\n\n');
+    } else {
+      process.stdout.write(color(chalk.bold.bgGreen.white, ' REGRESSION: NO ') + '\n\n');
+    }
+
+    const duration = formatDuration(result.durationMs);
+    process.stdout.write(
+      color(
+        chalk.dim,
+        `Compared in ${duration} against baseline from ${comp.baselineTimestamp}\n\n`,
+      ),
+    );
   }
 
   private printHeader(result: AnalysisResult, ciMode: boolean): void {

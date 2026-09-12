@@ -6,7 +6,15 @@ import { TerminalReporter } from '../reporters/terminal.js';
 import { JsonReporter } from '../reporters/json.js';
 import { HtmlReporter } from '../reporters/html.js';
 import { loadConfig } from './options.js';
-import { FathomConfigError, FathomRepositoryError } from '../core/errors.js';
+import {
+  FathomConfigError,
+  FathomRepositoryError,
+  FathomBaselineMissingError,
+  FathomBaselineCorruptError,
+} from '../core/errors.js';
+import { saveBaseline, loadBaseline } from '../baseline/baseline.js';
+import { compareWithBaseline } from '../baseline/compare.js';
+import type { BaselineData } from '../baseline/types.js';
 
 export interface AnalyzeOptions {
   json?: boolean;
@@ -17,6 +25,10 @@ export interface AnalyzeOptions {
   verbose?: boolean;
   /** Write JSON output to this file instead of stdout */
   output?: string;
+  /** Save the current analysis as baseline in .fathom/baseline.json */
+  baseline?: boolean;
+  /** Compare current analysis against .fathom/baseline.json */
+  compare?: boolean;
 }
 
 /**
@@ -60,6 +72,20 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     throw err;
   }
 
+  // Pre-load baseline if comparison requested
+  let baseline: BaselineData | null = null;
+  if (options.compare) {
+    try {
+      baseline = await loadBaseline(resolvedPath);
+    } catch (err) {
+      if (err instanceof FathomBaselineMissingError || err instanceof FathomBaselineCorruptError) {
+        process.stderr.write(`Error: ${err.message}\n`);
+        process.exit(2);
+      }
+      throw err;
+    }
+  }
+
   // Spinner (not in JSON or CI mode)
   let spinner: ReturnType<typeof ora> | null = null;
   if (!isJsonMode && !isCIMode) {
@@ -89,6 +115,25 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   }
 
   spinner?.stop();
+
+  // Attach comparison if baseline was loaded
+  if (options.compare && baseline) {
+    result.comparison = compareWithBaseline(result, baseline);
+  }
+
+  // Save baseline if requested
+  if (options.baseline) {
+    try {
+      const savedPath = await saveBaseline(resolvedPath, result);
+      if (!isJsonMode) {
+        const rel = path.relative(resolvedPath, savedPath) || savedPath;
+        process.stdout.write(`\n✓ Baseline saved to: ${rel}\n`);
+      }
+    } catch (err) {
+      process.stderr.write(`Error: Failed to save baseline: ${String(err)}\n`);
+      process.exit(3);
+    }
+  }
 
   // Report
   if (isJsonMode) {
@@ -127,6 +172,12 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
       }
       process.exit(1);
     }
+  }
+
+  // CI mode regression check
+  if (isCIMode && options.compare && result.comparison?.isRegression) {
+    process.stderr.write(`\nRegression detected compared to baseline. Exiting with code 1.\n`);
+    process.exit(1);
   }
 
   // CI mode: exit 1 on any critical or high finding (no score threshold —

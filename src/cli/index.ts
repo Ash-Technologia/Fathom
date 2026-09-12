@@ -12,8 +12,14 @@ program
   .option('--json', 'Output results as JSON (to stdout)')
   .option('--html [file]', 'Generate an HTML report (default: fathom-report.html)')
   .option('--ci', 'CI mode: compact output, exit 1 on critical findings')
+  .option('--fail-under <number>', 'Exit 1 if the health score is below this value', parseFloat)
   .option('-o, --output <file>', 'Write JSON report directly to a file')
   .option('--verbose', 'Show all findings in terminal output without truncation')
+  .option('--baseline', 'Save the current analysis as baseline in .fathom/baseline.json')
+  .option(
+    '--compare',
+    'Compare current analysis against .fathom/baseline.json and report regressions',
+  )
   .action(
     async (
       targetPath: string,
@@ -24,6 +30,8 @@ program
         failUnder?: number;
         output?: string;
         verbose?: boolean;
+        baseline?: boolean;
+        compare?: boolean;
       },
     ) => {
       await analyzeCommand(targetPath, options);

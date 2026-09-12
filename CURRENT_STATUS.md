@@ -158,10 +158,12 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 | Flag | Argument | Description |
 |---|---|---|
 | `[path]` | Optional string | Repository directory to analyze (default: `.`). |
-| `--json` | None | Outputs machine-readable JSON to stdout. |
+| `--baseline` | None | Analyzes repository and writes a deterministic baseline to `.fathom/baseline.json`. |
+| `--compare` | None | Analyzes repository and compares against `.fathom/baseline.json`, reporting deltas and regressions. |
+| `--json` | None | Outputs machine-readable JSON to stdout (includes comparison if `--compare`). |
 | `-o, --output` | `<file>` | Writes JSON output directly to file. |
-| `--html` | `[file]` | Generates self-contained interactive HTML report (default: `fathom-report.html`). |
-| `--ci` | None | CI mode: compact logging, fails build on any critical/high finding. |
+| `--html` | `[file]` | Generates self-contained interactive HTML report (includes comparison if `--compare`). |
+| `--ci` | None | CI mode: compact logging, fails build on critical/high finding or regression. |
 | `--fail-under` | `<score>` | Exits with code 1 if overall health score is strictly below this number. |
 | `--verbose` | None | Displays all findings in terminal output without the 10-finding truncation cap. |
 | `-v, --version`| None | Prints Fathom version. |
@@ -170,13 +172,25 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 ### Exit Codes
 
 - **`0`**: Successful analysis meeting all health criteria.
-- **`1`**: Analysis completed, but failed `--fail-under` threshold or encountered critical/high findings in `--ci` mode.
-- **`2`**: Invalid CLI usage or `.fathom.json` configuration error.
+- **`1`**: Analysis completed, but failed `--fail-under` threshold, encountered critical/high findings in `--ci` mode, or detected a regression in `--compare --ci` mode.
+- **`2`**: Invalid CLI usage, missing or corrupted baseline file, or `.fathom.json` configuration error.
 - **`3`**: Fatal repository access or file read error.
 
 ---
 
-## 6. Integrations & Automation
+## 6. Baseline & Regression Detection System
+
+- **Storage**: `.fathom/baseline.json` with schema versioning (`1.0`).
+- **Security & Privacy**: Strict sanitization eliminates secrets, tokens, credentials, and source code from baselines. Only stable metadata, finding identifiers, scores, metrics, and masked/safe evidence are persisted.
+- **Stable Finding Identity**: Composite key generation (`ruleId:normalized_file:title`) ensures line number shifts from code edits do not trigger false new/resolved finding churn.
+- **Regression Logic**:
+  - Distinguishes newly introduced (`+`), resolved (`-`), unchanged, and severity/confidence-modified (`~`) findings.
+  - Computes exact category and overall health score differentials.
+  - Verdict triggers `REGRESSION: YES` when overall health score decreases or new findings are introduced.
+
+---
+
+## 7. Integrations & Automation
 
 1. **GitHub Action (`action.yml`)**:
    - Repository acts directly as a composite GitHub Action:
@@ -195,15 +209,15 @@ Fathom implements **26 active rules** across **9 isolated analyzers**. Every rul
 
 ---
 
-## 7. Current Test & Quality Matrix
+## 8. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 6 test files, 27/27 tests passing (~1.7s runtime). |
-| **Fixture Testing** | 🟢 Passed | `healthy-node`, `insecure-node`, `minimal-python`, `no-git`, `empty`, `malformed`. |
+| **Vitest Tests** | 🟢 Passed | 8 test files, 37/37 tests passing (~2.0s runtime). |
+| **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
 | **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **98 / 100 (Excellent)**. |
 
 ---
