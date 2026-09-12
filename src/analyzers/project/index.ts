@@ -46,6 +46,38 @@ export class ProjectAnalyzer implements Analyzer {
       });
     }
 
+    // PROJ-002: Frameworks detected
+    if (context.frameworks.length > 0) {
+      const fwNames = context.frameworks.map((f) => f.name).join(', ');
+      findings.push({
+        id: createFindingId('PROJ-002', undefined, undefined),
+        ruleId: 'PROJ-002',
+        category: 'project',
+        severity: 'info',
+        title: `Frameworks detected: ${fwNames}`,
+        description: `Detected frameworks/libraries: ${fwNames}.`,
+        recommendation: 'Keep framework dependencies up to date with security releases.',
+        confidence: 0.95,
+        autoFixable: false,
+      });
+    }
+
+    // PROJ-003: Package managers detected
+    if (context.packageManagers.length > 0) {
+      const pmNames = context.packageManagers.map((p) => p.name).join(', ');
+      findings.push({
+        id: createFindingId('PROJ-003', undefined, undefined),
+        ruleId: 'PROJ-003',
+        category: 'project',
+        severity: 'info',
+        title: `Package manager detected: ${pmNames}`,
+        description: `Detected package manager(s): ${pmNames}.`,
+        recommendation: 'Ensure consistent package manager usage across your team.',
+        confidence: 0.95,
+        autoFixable: false,
+      });
+    }
+
     // PROJ-004: Large repository notice
     if (context.files.length > 10000) {
       findings.push({

@@ -68,6 +68,20 @@ export class DependencyAnalyzer implements Analyzer {
     const lockfilesFound = context.manifests.lockfiles;
     let dependencyCount = 0;
 
+    if (lockfilesFound.length > 0) {
+      findings.push({
+        id: createFindingId('DEP-002'),
+        ruleId: 'DEP-002',
+        category: 'dependencies',
+        severity: 'info',
+        title: `Lockfile detected: ${lockfilesFound.join(', ')}`,
+        description: `Found lockfile(s): ${lockfilesFound.join(', ')}. Ensures deterministic installs.`,
+        recommendation: 'Keep lockfiles committed and synchronised with package manifests.',
+        confidence: 0.99,
+        autoFixable: false,
+      });
+    }
+
     for (const manifest of manifests) {
       const expectedLockfiles = MANIFEST_TO_LOCKFILES[manifest] ?? [];
       const hasLockfile = expectedLockfiles.some((lf) => rootFileSet.has(lf));
@@ -111,6 +125,20 @@ export class DependencyAnalyzer implements Analyzer {
       const deps = Object.keys(pkgJson.dependencies ?? {}).length;
       const devDeps = Object.keys(pkgJson.devDependencies ?? {}).length;
       dependencyCount = deps + devDeps;
+
+      if (dependencyCount > 0) {
+        findings.push({
+          id: createFindingId('DEP-005'),
+          ruleId: 'DEP-005',
+          category: 'dependencies',
+          severity: 'info',
+          title: `Dependencies declared: ${dependencyCount}`,
+          description: `Project declares ${deps} dependencies and ${devDeps} devDependencies.`,
+          recommendation: 'Audit dependencies regularly for security updates and unused packages.',
+          confidence: 0.95,
+          autoFixable: false,
+        });
+      }
     }
 
     const metrics: Metrics = {

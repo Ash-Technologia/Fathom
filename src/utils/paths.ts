@@ -4,7 +4,7 @@ import path from 'node:path';
  * Convert an absolute path to a repository-relative path.
  */
 export function toRelativePath(root: string, absolutePath: string): string {
-  return path.relative(root, absolutePath);
+  return normalizeSlashes(path.relative(root, absolutePath));
 }
 
 /**

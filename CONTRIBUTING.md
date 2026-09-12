@@ -59,8 +59,8 @@ Adding a rule is intentionally straightforward and does not require touching the
 
 ### Setup
 ```bash
-git clone https://github.com/your-org/fathom.git
-cd fathom
+git clone https://github.com/Ash-Technologia/Fathom.git
+cd Fathom
 npm install
 ```
 

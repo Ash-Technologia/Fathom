@@ -72,6 +72,20 @@ export class CICDAnalyzer implements Analyzer {
 
     const hasGitHubActions = githubWorkflows.length > 0;
 
+    if (hasGitHubActions) {
+      findings.push({
+        id: createFindingId('CI-001'),
+        ruleId: 'CI-001',
+        category: 'cicd',
+        severity: 'info',
+        title: `GitHub Actions detected (${githubWorkflows.length} workflow${githubWorkflows.length > 1 ? 's' : ''})`,
+        description: `Detected ${githubWorkflows.length} GitHub Actions workflow file(s).`,
+        recommendation: 'Ensure workflows cover branch protection, testing, and linting.',
+        confidence: 0.99,
+        autoFixable: false,
+      });
+    }
+
     // CI-002: Any CI workflow
     const hasCIConfig =
       hasGitHubActions ||

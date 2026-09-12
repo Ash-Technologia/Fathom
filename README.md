@@ -2,7 +2,7 @@
 
 > **Know what's beneath the surface.**
 
-[![CI](https://github.com/your-org/fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/your-org/fathom/actions)
+[![CI](https://github.com/Ash-Technologia/Fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/Ash-Technologia/Fathom/actions)
 [![npm version](https://img.shields.io/npm/v/fathom.svg)](https://www.npmjs.com/package/fathom)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
