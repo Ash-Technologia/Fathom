@@ -192,6 +192,48 @@ export const RULE_DEFINITIONS: Record<string, RuleDefinition> = {
     description: 'Report the number of declared dependencies.',
     enabledByDefault: true,
   },
+  'DEP-006': {
+    id: 'DEP-006',
+    name: 'Suspicious Dependency Configuration',
+    category: 'dependencies',
+    severity: 'low',
+    description:
+      'Detect unpinned wildcard dependencies, unpinned Git URLs, or conflicting declarations.',
+    enabledByDefault: true,
+  },
+  'DEP-007': {
+    id: 'DEP-007',
+    name: 'Known Vulnerability Detected',
+    category: 'dependencies',
+    severity: 'high',
+    description:
+      'Known security vulnerability identified in a dependency from vulnerability advisory data.',
+    enabledByDefault: true,
+  },
+  'DEP-008': {
+    id: 'DEP-008',
+    name: 'Duplicate Dependency Versions',
+    category: 'dependencies',
+    severity: 'low',
+    description: 'Multiple distinct versions of the same dependency resolved in lockfiles.',
+    enabledByDefault: true,
+  },
+  'DEP-009': {
+    id: 'DEP-009',
+    name: 'Outdated Dependency Version',
+    category: 'dependencies',
+    severity: 'low',
+    description: 'Dependency version is significantly behind the latest available stable release.',
+    enabledByDefault: true,
+  },
+  'DEP-010': {
+    id: 'DEP-010',
+    name: 'Unused Dependency',
+    category: 'dependencies',
+    severity: 'info',
+    description: 'Declared production runtime dependency is not referenced in source code.',
+    enabledByDefault: true,
+  },
 
   // Quality
   'QUAL-001': {

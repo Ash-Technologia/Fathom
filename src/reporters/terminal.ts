@@ -448,4 +448,55 @@ export class TerminalReporter {
       process.stdout.write('\n');
     }
   }
+
+  printDependencyReport(result: AnalysisResult): void {
+    process.stdout.write('\n');
+    process.stdout.write(color(chalk.bold, 'Dependencies') + '\n\n');
+
+    const depResult = result.analyzers.find((a) => a.analyzerId === 'dependencies');
+    const manifests = (depResult?.metrics['manifestsFound'] as string[]) ?? [];
+    const lockfiles = (depResult?.metrics['lockfilesFound'] as string[]) ?? [];
+    const directCount =
+      typeof depResult?.metrics['directCount'] === 'number' ? depResult.metrics['directCount'] : 0;
+    const devCount =
+      typeof depResult?.metrics['devCount'] === 'number' ? depResult.metrics['devCount'] : 0;
+    const transitiveCount =
+      typeof depResult?.metrics['transitiveCount'] === 'number'
+        ? depResult.metrics['transitiveCount']
+        : 0;
+    const isOnline = Boolean(depResult?.metrics['isOnline']);
+
+    if (manifests.length > 0) {
+      process.stdout.write(`  Manifests:   ${manifests.join(', ')}\n`);
+    }
+    if (lockfiles.length > 0) {
+      process.stdout.write(`  Lockfiles:   ${lockfiles.join(', ')}\n`);
+    }
+    process.stdout.write(`  Direct:      ${directCount}\n`);
+    process.stdout.write(`  Dev:         ${devCount}\n`);
+    if (transitiveCount > 0) {
+      process.stdout.write(`  Transitive:  ${transitiveCount}\n`);
+    }
+    process.stdout.write(
+      `  Mode:        ${isOnline ? color(chalk.cyan, 'Online') : color(chalk.dim, 'Offline (Safe)')}\n\n`,
+    );
+
+    const depFindings = result.findings.filter(
+      (f) => f.category === 'dependencies' && !['DEP-001', 'DEP-002', 'DEP-005'].includes(f.ruleId),
+    );
+
+    if (depFindings.length > 0) {
+      process.stdout.write(color(chalk.bold, 'Advisories & Hygiene:') + '\n');
+      for (const finding of depFindings) {
+        const icon = getSeverityIcon(finding.severity);
+        process.stdout.write(` ${icon} ${color(chalk.bold, finding.title)}\n`);
+        process.stdout.write(`    ${finding.description}\n`);
+      }
+      process.stdout.write('\n');
+    } else {
+      process.stdout.write(
+        color(chalk.green, '  ✓ All dependencies verified healthy and consistent.') + '\n\n',
+      );
+    }
+  }
 }

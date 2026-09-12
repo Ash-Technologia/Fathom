@@ -48,6 +48,10 @@ export interface AnalyzeOptions {
   prComment?: boolean;
   /** Display architecture model, layers, and boundary checks */
   architecture?: boolean;
+  /** Display dependency intelligence breakdown */
+  deps?: boolean;
+  /** Enable online dependency vulnerability and freshness checks */
+  online?: boolean;
 }
 
 /**
@@ -133,6 +137,7 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
       repositoryPath: resolvedPath,
       ignorePatterns: config.ignore ?? [],
       ruleOverrides: config.rules ?? {},
+      online: Boolean(options.online),
     });
   } catch (err) {
     spinner?.fail('Analysis failed.');
@@ -272,6 +277,8 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
     const termReporter = new TerminalReporter();
     if (options.architecture) {
       termReporter.printArchitectureReport(result);
+    } else if (options.deps) {
+      termReporter.printDependencyReport(result);
     } else {
       await termReporter.report(result, isCIMode, isVerbose);
     }

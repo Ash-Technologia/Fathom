@@ -39,6 +39,8 @@ export interface OrchestratorOptions {
   context?: RepositoryContext;
   /** Optional per-rule configuration overrides */
   ruleOverrides?: Record<string, RuleConfigValue>;
+  /** Optional online mode flag for analyzers requiring network opt-in */
+  online?: boolean;
 }
 
 /**
@@ -122,7 +124,15 @@ export async function runAnalysis(
   // Build shared context
   logger.debug('Building repository context...');
   const context =
-    options.context ?? (await buildRepositoryContext(targetPath, options.ignorePatterns ?? []));
+    options.context ??
+    (await buildRepositoryContext(
+      targetPath,
+      options.ignorePatterns ?? [],
+      options.online ?? false,
+    ));
+  if (options.online !== undefined) {
+    context.online = options.online;
+  }
 
   // Run analyzers — parallel but capped to avoid thrashing
   const analyzers = registry.getAll();

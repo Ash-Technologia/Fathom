@@ -169,6 +169,12 @@ fathom --diff main --json
 # View architecture hierarchy and graph warnings in terminal
 fathom --architecture
 
+# Inspect dependency inventory and lockfile metrics (offline)
+fathom --deps
+
+# Inspect dependency inventory with opt-in vulnerability & freshness checks
+fathom --deps --online
+
 # Run in CI mode (compact logging, fails if critical/high findings exist)
 fathom --ci
 
@@ -451,6 +457,11 @@ Fathom evaluates repositories across **9 isolated analyzers**:
 | `DEP-003` | Dependencies | Missing lockfile when manifest is present | `medium` |
 | `DEP-004` | Dependencies | Package manager / lockfile mismatch | `low` |
 | `DEP-005` | Dependencies | Total dependencies declared | `info` |
+| `DEP-006` | Dependencies | Suspicious dependency configuration (wildcards, git URLs, duplicate declarations) | `medium` |
+| `DEP-007` | Dependencies | Known security vulnerabilities detected in dependencies (online) | `high` |
+| `DEP-008` | Dependencies | Duplicate versions of the same package installed | `low` |
+| `DEP-009` | Dependencies | Outdated major/minor dependencies detected (online) | `low` |
+| `DEP-010` | Dependencies | Unused production dependency declared in manifest | `low` |
 | `QUAL-001` | Quality | TODO comment count | `low` |
 | `QUAL-002` | Quality | FIXME comment count | `medium` |
 | `QUAL-003` | Quality | Debug/console statements left in code (`console.log`, `debugger`, etc.) | `low` |
@@ -588,6 +599,35 @@ CLI Arguments (e.g. --fail-under 80, --ci, explicit flags)
        ↓
 Built-in Defaults
 ```
+
+---
+
+## 🏗️ Architecture Intelligence (`--architecture`)
+
+Fathom builds an in-memory structural graph without running any code:
+- **Zero Runtime Execution**: Parses import/export relationships purely via AST text regex scanners; supports ESM, CommonJS, dynamic imports, and Python modules.
+- **Path Alias Resolution**: Automatically resolves module aliases defined in `tsconfig.json` or `jsconfig.json`.
+- **Cycle Detection**: Uses Tarjan's Strongly Connected Components (SCC) algorithm to detect directed import loops (`ARCH-002`).
+- **Boundary Violations (`ARCH-003`)**: Flags suspicious cross-layer imports (e.g., backend importing React components or client importing `fs`/`child_process`).
+- **Deep Coupling (`ARCH-004`) & Monolithic Modules (`ARCH-005`)**: Flags high fan-out files and oversized monolithic units.
+- **Orphan Detection (`ARCH-006`)**: Identifies unreachable source files with confident heuristic filtering.
+
+---
+
+## 📦 Dependency Intelligence (`--deps`, `--deps --online`)
+
+Fathom provides deep dependency insights without acting as a package manager or mutating repositories:
+- **Offline-by-Default Safe Analysis (`fathom --deps`)**:
+  - Direct vs transitive dependency counting across multi-package projects.
+  - Multi-lockfile support: npm `package-lock.json` (v1, v2, v3), `yarn.lock` (line-by-line), and `pnpm-lock.yaml`.
+  - Duplicate dependency version detection (`DEP-008`).
+  - Suspicious dependency configurations (`DEP-006`: wildcards, git URLs, duplicate dev/prod declarations).
+  - High-confidence unused dependency detection (`DEP-010`) cross-checked against static import graphs.
+- **Opt-in Online Intelligence (`fathom --deps --online`)**:
+  - Batch queries to OSV API (Open Source Vulnerabilities) (`DEP-007`) with strict 3s timeouts.
+  - Npm registry queries for outdated package detection (`DEP-009`).
+  - Completely silent offline fallback when network is unavailable.
+  - Zero repository code transmission or token leakage.
 
 ---
 

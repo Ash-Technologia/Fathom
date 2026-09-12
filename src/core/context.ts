@@ -95,6 +95,8 @@ export interface RepositoryContext {
   manifests: ManifestContext;
   /** Additional ignore patterns from .fathom.json */
   ignorePatterns: string[];
+  /** Optional online mode flag for analyzers requiring network opt-in */
+  online?: boolean;
   /** Metadata */
   metadata: {
     /** ISO timestamp of when context was built */
@@ -126,6 +128,7 @@ function isTestFile(relativePath: string): boolean {
 export async function buildRepositoryContext(
   root: string,
   additionalIgnorePatterns: string[] = [],
+  online = false,
 ): Promise<RepositoryContext> {
   const absoluteRoot = path.resolve(root);
 
@@ -271,6 +274,7 @@ export async function buildRepositoryContext(
     projectType,
     manifests,
     ignorePatterns,
+    online,
     metadata: {
       scannedAt: new Date().toISOString(),
       totalSizeBytes,

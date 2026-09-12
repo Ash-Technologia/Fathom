@@ -273,34 +273,33 @@ Fathom features a native, local-first PR intelligence engine (`fathom --diff [re
 
 ---
 
-## 11. Current Test & Quality Matrix
+## 11. Dependency Intelligence Subsystem (Prompt 7)
 
-| Suite | Status | Details |
-|---|:---:|---|
-| **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
-| **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
-| **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 18 test files, 96/96 tests passing (~6.9s runtime). |
-| **Architecture Intelligence** | 🟢 Passed | Import extraction, alias resolution, Tarjan's SCC cycle detection, boundary violations, CLI `--architecture` visual tree. |
-| **Configuration & Targeting** | 🟢 Passed | `.fathomignore` parsing, schema validation, `off`/`warning`/`error` states, critical security rule safeguards, precedence. |
-| **GitHub PR Integration Testing** | 🟢 Passed | Step summary file generation, GitHub Actions environment detection, PR comment token masking. |
-| **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
-| **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |
-| **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |
-| **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **98 / 100 (Excellent)**. |l`)**:
-   - Triggers on `v*` tag push or manual workflow dispatch.
-   - Builds, tests, creates a GitHub release with automated release notes, and publishes to npm with `--provenance`.
+Fathom provides static and offline-first dependency intelligence without package managers or network requirements:
+- **Offline-by-Default Safe Analysis (`fathom --deps`)**:
+  - Direct vs transitive dependency counting across multi-package projects.
+  - Full lockfile parsing: npm `package-lock.json` (v1, v2, v3), `yarn.lock` (line-by-line), and `pnpm-lock.yaml`.
+  - Duplicate dependency version detection (`DEP-008`).
+  - Suspicious dependency configurations (`DEP-006`: wildcards, git URLs, duplicate dev/prod declarations).
+  - High-confidence unused dependency detection (`DEP-010`) cross-checked against static import graphs.
+- **Opt-in Online Intelligence (`fathom --deps --online`)**:
+  - Batch queries to OSV API (Open Source Vulnerabilities) (`DEP-007`) with strict 3s timeouts.
+  - Npm registry queries for outdated package detection (`DEP-009`).
+  - Completely silent offline fallback when network is unavailable.
+  - Zero repository code transmission or token leakage.
 
 ---
 
-## 10. Current Test & Quality Matrix
+## 12. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 16 test files, 81/81 tests passing (~2.8s runtime). |
+| **Vitest Tests** | 🟢 Passed | 20 test files, 106/106 tests passing (~6.9s runtime). |
+| **Dependency Intelligence** | 🟢 Passed | Static lockfile parsing (v1/v2/v3 package-lock, yarn.lock, pnpm), duplicate version detection, suspicious specifiers, high-confidence unused deps, OSV & registry queries. |
+| **Architecture Intelligence** | 🟢 Passed | Import extraction, alias resolution, Tarjan's SCC cycle detection, boundary violations, CLI `--architecture` visual tree. |
 | **Configuration & Targeting** | 🟢 Passed | `.fathomignore` parsing, schema validation, `off`/`warning`/`error` states, critical security rule safeguards, precedence. |
 | **GitHub PR Integration Testing** | 🟢 Passed | Step summary file generation, GitHub Actions environment detection, PR comment token masking. |
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
@@ -310,7 +309,7 @@ Fathom features a native, local-first PR intelligence engine (`fathom --diff [re
 
 ---
 
-## 10. Deployment & Publishing Guide
+## 13. Deployment & Publishing Guide
 
 ### Step 1: Add NPM Token to GitHub Secrets
 1. Log in to [npmjs.com](https://www.npmjs.com/) and go to **Access Tokens**.

@@ -31,6 +31,8 @@ program
   )
   .option('--pr-comment', 'Post PR summary comment to GitHub pull request (requires GITHUB_TOKEN)')
   .option('--architecture', 'Display architecture model, layers, and boundary checks')
+  .option('--deps', 'Display dependency intelligence, duplicates, and configuration hygiene')
+  .option('--online', 'Enable online dependency vulnerability and freshness queries (opt-in)')
   .action(
     async (
       targetPath: string,
@@ -48,6 +50,8 @@ program
         summary?: string | boolean;
         prComment?: boolean;
         architecture?: boolean;
+        deps?: boolean;
+        online?: boolean;
       },
     ) => {
       await analyzeCommand(targetPath, options);
