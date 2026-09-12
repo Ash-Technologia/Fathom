@@ -1,0 +1,35 @@
+name: Fathom PR Intelligence
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write # Required if posting PR summary comments
+  security-events: write # Required if uploading SARIF results
+
+jobs:
+  pr-intelligence:
+    name: PR Health & Diff Intelligence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history ensures merge-base can be resolved accurately
+
+      - name: Run Fathom PR Analysis
+        uses: Ash-Technologia/Fathom@main
+        with:
+          diff: 'true'
+          summary: 'true'
+          pr-comment: 'true'
+          sarif: 'fathom.sarif'
+          fail-under: '80'
+
+      - name: Upload SARIF to GitHub Code Scanning
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'fathom.sarif'

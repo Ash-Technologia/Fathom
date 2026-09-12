@@ -225,24 +225,31 @@ Fathom features a native, local-first PR intelligence engine (`fathom --diff [re
   - `touchedFindings`: Pre-existing issues within touched files.
   - `resolvedFindings`: Issues present in base but fixed in the diff.
 - **Impact Metrics**: Overall health score delta and category impact breakdowns.
+- **Markdown PR Summaries**:
+  - Automatically formats health score change, category deltas, new findings (with severity badges 🔴/🟠/🟡/🔵/⚪), resolved findings, and pass/fail verdict.
+  - Generates to `$GITHUB_STEP_SUMMARY` in CI environments or to custom files with `--summary [path]`.
+- **Pull Request Comments**:
+  - Native GitHub REST API integration via `--pr-comment` with automatic token masking and zero third-party dependencies.
 
 ---
 
 ## 9. Integrations & Automation
 
 1. **GitHub Action (`action.yml`)**:
-   - Repository acts directly as a composite GitHub Action supporting SARIF, HTML, JSON, and threshold gating:
+   - Repository acts directly as a composite GitHub Action supporting SARIF, HTML, JSON, diff analysis, step summaries, PR comments, and threshold gating:
      ```yaml
      - uses: Ash-Technologia/Fathom@main
        with:
-         fail-under: '80'
-         sarif: 'fathom.sarif'
-         html: 'fathom-report.html'
+         diff: 'true'
+         pr-comment: 'true'
+         github-token: ${{ secrets.GITHUB_TOKEN }}
      ```
-2. **Continuous Integration (`.github/workflows/ci.yml`)**:
+2. **PR Intelligence Workflow (`.github/workflows/pr-intelligence.yml`)**:
+   - Dedicated workflow triggering on pull requests to analyze introduced findings and publish a step summary.
+3. **Continuous Integration (`.github/workflows/ci.yml`)**:
    - Matrix testing across **Node 18.x, 20.x, 22.x** on **Ubuntu, macOS, and Windows**.
    - Runs `npm run build`, `npm run lint`, `npm test`, `npm pack`, and self-analysis.
-3. **Automated Release Workflow (`.github/workflows/release.yml`)**:
+4. **Automated Release Workflow (`.github/workflows/release.yml`)**:
    - Triggers on `v*` tag push or manual workflow dispatch.
    - Builds, tests, creates a GitHub release with automated release notes, and publishes to npm with `--provenance`.
 
@@ -255,7 +262,8 @@ Fathom features a native, local-first PR intelligence engine (`fathom --diff [re
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 12 test files, 55/55 tests passing (~1.8s runtime). |
+| **Vitest Tests** | 🟢 Passed | 14 test files, 64/64 tests passing (~2.5s runtime). |
+| **GitHub PR Integration Testing** | 🟢 Passed | Step summary file generation, GitHub Actions environment detection, PR comment token masking. |
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
 | **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |
 | **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |

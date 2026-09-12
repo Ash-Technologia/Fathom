@@ -321,7 +321,35 @@ jobs:
         with:
           sarif_file: fathom.sarif
           category: fathom
+
+  fathom-pr:
+    name: PR Intelligence & Step Summary
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write # Required only if pr-comment: 'true'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history needed for base ref diff
+
+      - name: Run Fathom PR Intelligence
+        uses: Ash-Technologia/Fathom@main
+        with:
+          diff: 'true' # Automatically resolves github.base_ref
+          pr-comment: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
+
+### GitHub Actions Step Summary & PR Comments
+
+When running in GitHub Actions:
+- **Automatic Step Summary**: If running under a `pull_request` event or when `--diff` is analyzed, Fathom automatically generates and writes a concise Markdown summary to `$GITHUB_STEP_SUMMARY`.
+- **PR Commenting**: Passing `--pr-comment` posts the concise PR health and findings table directly as a review comment on the pull request.
+- **Offline / Local Execution**: When executed locally, Fathom runs completely offline without needing GitHub credentials or network connectivity. Tokens are never logged or exposed.
+- **Custom Summary File**: Output Markdown directly to any file via `fathom --diff [ref] --summary pr-summary.md`.
 
 ---
 

@@ -30,6 +30,22 @@ inputs:
     description: 'Display all findings without the default 10-finding limit'
     required: false
     default: 'false'
+  diff:
+    description: 'Analyze PR diff against base ref (e.g. "main" or "true" for auto-detect)'
+    required: false
+    default: ''
+  summary:
+    description: 'Generate and publish Markdown PR summary to GitHub step summary (true/false)'
+    required: false
+    default: 'true'
+  pr-comment:
+    description: 'Post PR summary comment directly to the pull request'
+    required: false
+    default: 'false'
+  github-token:
+    description: 'GitHub token for posting PR comments (defaults to github.token)'
+    required: false
+    default: ${{ github.token }}
 
 runs:
   using: 'composite'
@@ -45,6 +61,8 @@ runs:
 
     - name: Run Fathom Analysis
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
       run: |
         CMD_ARGS="${{ inputs.path }} --ci"
         if [ -n "${{ inputs.fail-under }}" ]; then
@@ -61,5 +79,13 @@ runs:
         fi
         if [ "${{ inputs.verbose }}" = "true" ]; then
           CMD_ARGS="$CMD_ARGS --verbose"
+        fi
+        if [ "${{ inputs.diff }}" = "true" ]; then
+          CMD_ARGS="$CMD_ARGS --diff"
+        elif [ -n "${{ inputs.diff }}" ]; then
+          CMD_ARGS="$CMD_ARGS --diff ${{ inputs.diff }}"
+        fi
+        if [ "${{ inputs.pr-comment }}" = "true" ]; then
+          CMD_ARGS="$CMD_ARGS --pr-comment"
         fi
         node "${{ github.action_path }}/dist/cli/index.js" $CMD_ARGS

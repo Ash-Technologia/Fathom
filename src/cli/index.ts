@@ -25,6 +25,11 @@ program
     '--diff [ref]',
     'Analyze changes introduced by Git diff against base ref (default: auto-detect)',
   )
+  .option(
+    '--summary [file]',
+    'Generate Markdown PR summary (writes to GITHUB_STEP_SUMMARY or specified file)',
+  )
+  .option('--pr-comment', 'Post PR summary comment to GitHub pull request (requires GITHUB_TOKEN)')
   .action(
     async (
       targetPath: string,
@@ -39,6 +44,8 @@ program
         baseline?: boolean;
         compare?: boolean;
         diff?: string | boolean;
+        summary?: string | boolean;
+        prComment?: boolean;
       },
     ) => {
       await analyzeCommand(targetPath, options);

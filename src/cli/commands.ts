@@ -19,6 +19,12 @@ import { compareWithBaseline } from '../baseline/compare.js';
 import type { BaselineData } from '../baseline/types.js';
 import { analyzePR } from '../diff/analyzer.js';
 import { buildRepositoryContext } from '../core/context.js';
+import { generatePRMarkdownSummary } from '../reporters/markdown.js';
+import {
+  detectGitHubContext,
+  publishStepSummary,
+  publishPRComment,
+} from '../integrations/github/context.js';
 
 export interface AnalyzeOptions {
   json?: boolean;
@@ -36,6 +42,10 @@ export interface AnalyzeOptions {
   compare?: boolean;
   /** Analyze changes introduced by Git diff against base ref */
   diff?: string | boolean;
+  /** Write Markdown PR summary (to file or GITHUB_STEP_SUMMARY) */
+  summary?: string | boolean;
+  /** Post PR summary comment to GitHub pull request (requires GITHUB_TOKEN) */
+  prComment?: boolean;
 }
 
 /**
@@ -133,12 +143,63 @@ export async function analyzeCommand(targetPath: string, options: AnalyzeOptions
   if (options.diff !== undefined) {
     try {
       const currentContext = await buildRepositoryContext(resolvedPath, config.ignore ?? []);
+      const githubContext = await detectGitHubContext();
+
+      // If diff baseRef was not explicitly specified and GITHUB_BASE_REF is set, use it
+      const effectiveBaseRef =
+        (options.diff === true || options.diff === '') && githubContext.baseRef
+          ? githubContext.baseRef
+          : options.diff;
+
       result.prAnalysis = await analyzePR(resolvedPath, {
-        baseRef: options.diff,
+        baseRef: effectiveBaseRef,
         ignorePatterns: config.ignore ?? [],
         currentResult: result,
         currentContext,
       });
+
+      // Handle Markdown PR summary if requested or running in GitHub Actions
+      const shouldWriteSummary = options.summary !== undefined || githubContext.isGitHubActions;
+
+      if (shouldWriteSummary && result.prAnalysis) {
+        const markdown = generatePRMarkdownSummary(result.prAnalysis);
+
+        // If specific file requested via --summary <file>, write directly
+        if (typeof options.summary === 'string' && options.summary.length > 0) {
+          await fs.writeFile(options.summary, markdown, 'utf8');
+          if (!isJsonMode && !isSarifMode) {
+            process.stderr.write(`PR summary written to: ${options.summary}\n`);
+          }
+        }
+
+        // In GitHub Actions, publish to GITHUB_STEP_SUMMARY
+        if (githubContext.isGitHubActions || options.summary === true) {
+          await publishStepSummary(markdown);
+        }
+
+        // Optional PR comment posting
+        if (options.prComment) {
+          if (githubContext.repository && githubContext.prNumber && githubContext.token) {
+            const commentRes = await publishPRComment({
+              repository: githubContext.repository,
+              prNumber: githubContext.prNumber,
+              token: githubContext.token,
+              body: markdown,
+            });
+            if (commentRes.success) {
+              process.stderr.write('✓ Published PR summary comment to GitHub.\n');
+            } else {
+              process.stderr.write(
+                `[Fathom] Warning: Failed to post PR comment: ${commentRes.error}\n`,
+              );
+            }
+          } else {
+            process.stderr.write(
+              '[Fathom] Warning: --pr-comment requested, but GITHUB_TOKEN, repository, or PR number could not be detected.\n',
+            );
+          }
+        }
+      }
     } catch (err) {
       if (err instanceof FathomGitDiffError) {
         process.stderr.write(`Error: ${err.message}\n`);
