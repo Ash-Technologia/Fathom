@@ -44,6 +44,12 @@ const FRAMEWORK_SIGNATURES: FrameworkSignature[] = [
     filePatterns: [/\.vue$/],
   },
   {
+    name: 'Nuxt',
+    packages: ['nuxt', 'nuxt3'],
+    configFiles: ['nuxt.config.js', 'nuxt.config.ts'],
+    directories: ['.nuxt'],
+  },
+  {
     name: 'Angular',
     packages: ['@angular/core'],
     configFiles: ['angular.json', '.angular-cli.json'],

@@ -351,7 +351,7 @@ Fathom generates a **100% self-contained**, interactive developer dashboard (`fa
 | **Fixture & Regression Testing** | 🟢 Passed | Unit and fixture-based regression tests, corrupted baseline tests, missing baseline tests. |
 | **PR Diff Intelligence Testing** | 🟢 Passed | Unit and git fixture integration tests: line range parsing, detached HEAD, clean PR, finding introduction, ref errors. |
 | **SARIF Validation** | 🟢 Passed | OASIS 2.1.0 schema compliance, location mapping, severity mapping, secret protection. |
-| **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **91 / 100 (Excellent)**, CI mode exits 0 with zero high/critical issues. |
+| **Self-Analysis** | 🟢 Passed | Health score on Fathom itself: **96 / 100 (Excellent)**, CI mode exits 0 with zero high/critical issues, zero empty catch blocks, and zero false positives. |
 
 ---
 

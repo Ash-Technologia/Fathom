@@ -13,6 +13,8 @@ Thumbs.db
 build/
 .cache/
 .next/
+.nuxt/
+.fathom/
 vendor/
 __pycache__/
 *.env

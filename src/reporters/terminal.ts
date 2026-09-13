@@ -373,15 +373,36 @@ export class TerminalReporter {
   }
 
   private printNextSteps(result: AnalysisResult, _ciMode: boolean): void {
-    const actionable = result.findings.filter((f) => f.severity !== 'info').slice(0, 5);
-
+    const actionable = result.findings.filter((f) => f.severity !== 'info');
     if (actionable.length === 0) return;
+
+    const seenRecs = new Set<string>();
+    const steps: string[] = [];
+
+    for (const finding of actionable) {
+      const target = finding.location?.file
+        ? finding.location.line
+          ? `${finding.location.file}:${finding.location.line}`
+          : finding.location.file
+        : '';
+      const rec = target
+        ? `${finding.recommendation} (${target})`
+        : finding.recommendation;
+
+      if (!seenRecs.has(rec)) {
+        seenRecs.add(rec);
+        steps.push(rec);
+        if (steps.length >= 5) break;
+      }
+    }
+
+    if (steps.length === 0) return;
 
     process.stdout.write(color(chalk.dim, hr()) + '\n\n');
     process.stdout.write(color(chalk.bold, 'NEXT STEPS') + '\n\n');
 
-    actionable.forEach((finding, i) => {
-      process.stdout.write(`  ${i + 1}. ${finding.recommendation}\n`);
+    steps.forEach((step, i) => {
+      process.stdout.write(`  ${i + 1}. ${step}\n`);
     });
 
     process.stdout.write('\n');
@@ -417,7 +438,7 @@ export class TerminalReporter {
       try {
         layers = JSON.parse(archResult.metrics['layers']) as typeof layers;
       } catch {
-        // ignore
+        layers = [];
       }
     }
 

@@ -100,14 +100,14 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     try {
       archLayers = JSON.parse(archMetrics['layers']) as typeof archLayers;
     } catch {
-      // ignore
+      archLayers = [];
     }
   }
   if (typeof archMetrics['warnings'] === 'string') {
     try {
       archWarnings = JSON.parse(archMetrics['warnings']) as typeof archWarnings;
     } catch {
-      // ignore
+      archWarnings = [];
     }
   }
 

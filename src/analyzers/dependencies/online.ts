@@ -145,7 +145,7 @@ export async function checkOutdatedOnline(
         }
       }
     } catch {
-      // Ignore network failures
+      return;
     }
   });
 

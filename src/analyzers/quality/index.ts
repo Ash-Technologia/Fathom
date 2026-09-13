@@ -7,8 +7,8 @@ import { createTimer } from '../../utils/timing.js';
 import { readFileSafe } from '../../utils/filesystem.js';
 import { computeDepth } from '../../utils/paths.js';
 
-const TODO_PATTERN = /\bTODO\b/gi;
-const FIXME_PATTERN = /\bFIXME\b/gi;
+const COMMENT_TODO_PATTERN = /(?:\/\/|#)\s*TODO\b|^\s*(?:\/\*|\*)\s*TODO\b/i;
+const COMMENT_FIXME_PATTERN = /(?:\/\/|#)\s*FIXME\b|^\s*(?:\/\*|\*)\s*FIXME\b/i;
 
 /** Debug statement patterns for JS/TS */
 const DEBUG_PATTERNS_JS: RegExp[] = [
@@ -70,19 +70,19 @@ export class QualityAnalyzer implements Analyzer {
 
       const lines = content.split('\n');
 
-      // QUAL-001: TODOs
-      const todosInFile = (content.match(TODO_PATTERN) ?? []).length;
-      totalTodos += todosInFile;
-
-      // QUAL-002: FIXMEs
-      const fixmesInFile = (content.match(FIXME_PATTERN) ?? []).length;
-      totalFixmes += fixmesInFile;
-
       // QUAL-003: Debug statements — language-aware
       const isPython = file.extension === '.py' || file.extension === '.pyw';
       const debugPatterns = isPython ? DEBUG_PATTERNS_PYTHON : DEBUG_PATTERNS_JS;
       for (const line of lines) {
-        // Skip pure comment lines
+        // QUAL-001 & QUAL-002: Comment-scoped TODOs and FIXMEs
+        if (COMMENT_TODO_PATTERN.test(line)) {
+          totalTodos++;
+        }
+        if (COMMENT_FIXME_PATTERN.test(line)) {
+          totalFixmes++;
+        }
+
+        // Skip pure comment lines for debug statement scan
         if (/^\s*(\/\/|#|\/\*)/.test(line)) continue;
         for (const pattern of debugPatterns) {
           if (pattern.test(line)) {

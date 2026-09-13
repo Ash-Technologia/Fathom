@@ -111,8 +111,20 @@ export class DocumentationAnalyzer implements Analyzer {
       }
     }
 
+    const hasDocFile = (names: string[]): boolean =>
+      names.some(
+        (name) =>
+          rootFileSet.has(name) ||
+          context.files.some(
+            (f) =>
+              f.relativePath === name ||
+              f.relativePath === `.github/${name}` ||
+              f.relativePath === `docs/${name}`,
+          ),
+      );
+
     // DOC-004: LICENSE
-    const hasLicense = LICENSE_NAMES.some((name) => rootFileSet.has(name));
+    const hasLicense = hasDocFile(LICENSE_NAMES);
     if (!hasLicense) {
       findings.push({
         id: createFindingId('DOC-004'),
@@ -130,7 +142,7 @@ export class DocumentationAnalyzer implements Analyzer {
     }
 
     // DOC-005: CONTRIBUTING
-    const hasContributing = CONTRIBUTING_NAMES.some((name) => rootFileSet.has(name));
+    const hasContributing = hasDocFile(CONTRIBUTING_NAMES);
     if (!hasContributing) {
       findings.push({
         id: createFindingId('DOC-005'),
@@ -147,7 +159,7 @@ export class DocumentationAnalyzer implements Analyzer {
     }
 
     // DOC-006: SECURITY
-    const hasSecurity = SECURITY_NAMES.some((name) => rootFileSet.has(name));
+    const hasSecurity = hasDocFile(SECURITY_NAMES);
     if (!hasSecurity) {
       findings.push({
         id: createFindingId('DOC-006'),

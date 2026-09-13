@@ -172,7 +172,7 @@ export async function buildRepositoryContext(
           isConfig: isConfigExtension(relativePath),
         });
       } catch {
-        // Skip unreadable files
+        return;
       }
     }),
   );
@@ -196,7 +196,7 @@ export async function buildRepositoryContext(
     hasGitignore = true;
     gitignoreContent = await fs.readFile(gitignorePath, 'utf8');
   } catch {
-    // No gitignore
+    hasGitignore = false;
   }
 
   let hasCommits = false;
@@ -230,7 +230,7 @@ export async function buildRepositoryContext(
         await fs.access(mfPath);
         manifestFiles[mf] = true;
       } catch {
-        // skip
+        continue;
       }
     }
   }

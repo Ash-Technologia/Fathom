@@ -52,7 +52,7 @@ export function extractPathAliases(configContent?: string | null): PathAliasConf
       };
     }
   } catch {
-    // Ignore invalid tsconfig
+    return null;
   }
   return null;
 }

@@ -37,7 +37,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Configuration**: `.fathom.json` configuration loader with ignore glob patterns and rule overrides.
 - **Fixtures & Tests**: Full suite of unit tests and fixture-based integration tests (`healthy-node`, `insecure-node`, `minimal-python`, `no-git`, `empty`, `malformed`).
 
+- **Baseline & Regression Engine**: Added `fathom --baseline` to save deterministic snapshots to `.fathom/baseline.json` and `fathom --compare` to detect score regressions, newly introduced findings, and resolved issues.
+- **Git Diff & PR Intelligence**: Added `fathom --diff [ref]`, automated `GITHUB_STEP_SUMMARY` markdown reports, and optional GitHub pull request commenting with credential masking.
+- **Architecture Intelligence**: Upgraded architecture analyzer with in-memory graph construction, import/export parsing, `tsconfig` alias resolution, Tarjan's SCC circular dependency detection (`ARCH-002`), cross-layer boundary violations (`ARCH-003`), fan-out coupling (`ARCH-004`), and terminal hierarchy trees (`--architecture`).
+- **Dependency Intelligence**: Added static offline lockfile parsing for `package-lock.json` (v1/v2/v3), `yarn.lock`, and `pnpm-lock.yaml`, duplicate version detection (`DEP-008`), suspicious specifiers (`DEP-006`), high-confidence unused dependencies (`DEP-010`), and opt-in OSV vulnerability scanning (`DEP-007`) and freshness checks (`DEP-009`) via `--deps --online`.
+- **Plugin Architecture**: Implemented stable plugin API (`PluginManifest`, `PluginRule`, `PluginAnalyzer`, `PluginContext`, `PluginRegistry`) with strict sandboxing (1MB bounded reads, path traversal blocking, error isolation) and reference internal plugin `@fathom/plugin-react`.
+- **Developer Dashboard HTML Report**: Upgraded `fathom --html` to a 100% self-contained developer dashboard with 12 interactive sections, real-time client-side search/filter/sort, syntax-highlighted collapsible evidence, and zero external CDN/font requests.
+- **Terminal UX Polish**: Deduplicated and contextualized Next Steps recommendations with specific file and line references.
+
 ### Fixed
+- **TODO/FIXME Comment Scoping**: Restructured pattern matching to only inspect comment lines, eliminating false positives on variable names, object keys, and string literals.
+- **Generated Directory Gitignore Checks**: Made `GIT-003` framework directory checks (`.next`, `.nuxt`) contextual so projects without Next.js/Nuxt.js are not penalized.
+- **Standard Documentation Paths**: Extended `DOC-005` (CONTRIBUTING) and `DOC-006` (SECURITY) to recognize files placed in `.github/` and `docs/`.
+- **Empty Catch Blocks**: Remediated silent catch blocks across all internal subsystems with explicit error recovery and return values.
+- **Package Scripts**: Fixed broken `"clean"` and `"dev"` scripts in `package.json` with cross-platform Node utilities.
+- **Circular Dependency Cycle**: Resolved cyclic import between `src/baseline/types.ts` and `src/core/result.ts`.
 - **Git Repo Scoping**: Scoped `isGitRepository` strictly to the target folder to prevent detecting parent `.git` repositories in nested tests/workspaces.
 - **CLI Analyzer Registry**: Replaced duplicate analyzer instantiation with `createDefaultRegistry()` for consistency.
 - **CI Exit Codes**: Ensured CI exit code 1 triggers on any high or critical finding regardless of composite health score.

@@ -83,9 +83,24 @@ export class GitAnalyzer implements Analyzer {
         // Only flag dirs that are actually relevant (present or implied by ecosystem)
         const isNodeProject = context.languages.some((l) => l.name === 'Node.js');
         const isJavaProject = context.languages.some((l) => l.name === 'Java');
+        const isPythonProject = context.languages.some((l) => l.name === 'Python');
 
         if (dir === 'node_modules' && !isNodeProject) continue;
         if (dir === 'target' && !isJavaProject) continue;
+        if (dir === '__pycache__' && !isPythonProject) continue;
+
+        // For framework-specific directories, only check if framework is present or dir exists
+        if (dir === '.next') {
+          const isNext = context.frameworks.some((f) => f.name === 'Next.js');
+          const hasNextDir = context.files.some((f) => f.relativePath.startsWith('.next/'));
+          if (!isNext && !hasNextDir) continue;
+        }
+
+        if (dir === '.nuxt') {
+          const isNuxt = context.frameworks.some((f) => f.name === 'Nuxt');
+          const hasNuxtDir = context.files.some((f) => f.relativePath.startsWith('.nuxt/'));
+          if (!isNuxt && !hasNuxtDir) continue;
+        }
 
         if (!isPathMentionedInGitignore(gitignore, dir)) {
           notIgnored.push(dir);

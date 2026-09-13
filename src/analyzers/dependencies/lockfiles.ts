@@ -65,7 +65,11 @@ export function parsePackageLockJson(content: string): ParsedLockfile {
       }
     }
   } catch {
-    // Malformed JSON handled safely without throwing
+    return {
+      transitiveCount: 0,
+      packages,
+      duplicates: [],
+    };
   }
 
   const duplicates: DuplicatePackage[] = [];
