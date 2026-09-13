@@ -310,14 +310,39 @@ Fathom provides a stable, safe, and sandboxed plugin subsystem that allows exter
 
 ---
 
-## 13. Current Test & Quality Matrix
+## 13. Developer Dashboard HTML Report Subsystem
+
+Fathom generates a **100% self-contained**, interactive developer dashboard (`fathom --html report.html`):
+- **Zero External Dependencies**: No CDNs, no external web fonts, no tracking, no analytics, no backend, no network requests. Works entirely offline and in air-gapped environments.
+- **12 Interactive Sections**:
+  1. **Overall Health Hero**: Health score (0–100), health band badge (`healthy`, `warning`, `critical`), and repository metadata.
+  2. **Category Score Breakdown**: Visual progress meters and weighted impact for all active categories.
+  3. **Severity Distribution**: Proportional distribution bar and count breakdown (Critical, High, Medium, Low, Info).
+  4. **Top Priorities**: Urgency callouts highlighting high-confidence, actionable vulnerabilities and quality fixes.
+  5. **Baseline Comparison / Regression Banner**: Displays score delta and newly introduced vs resolved findings when running `--compare` or `--diff`.
+  6. **Architecture Overview**: Metrics on graph nodes, edges, circular dependency cycles, detected layers, and boundary warnings.
+  7. **Dependency Summary**: Direct vs transitive counts, duplicate versions, lockfile status, and vulnerability indicators.
+  8. **Testing Maturity**: Test-to-source ratio, test file count, and npm test script detection.
+  9. **Git Hygiene**: Clean/dirty working tree status, uncommitted change indicators, and large untracked binary checks.
+  10. **Documentation Health**: Checklist matrix for README, LICENSE, CONTRIBUTING, and SECURITY policies.
+  11. **CI/CD Automation**: Detection of GitHub Actions workflows and CI pipeline configurations.
+  12. **Finding Explorer**: Real-time client-side search, category filter dropdown, severity filter toggle pills, multi-attribute sorting (severity, rule ID, file, confidence), and collapsible evidence viewer with XSS-safe code formatting.
+- **Security & Determinism**:
+  - Centralized entity escaping (`escapeHtml`).
+  - Embedded JSON payloads escape opening tags (`\u003c`) to prevent script injection.
+  - Produces byte-for-byte identical output for identical analysis inputs.
+
+---
+
+## 14. Current Test & Quality Matrix
 
 | Suite | Status | Details |
 |---|:---:|---|
 | **TypeScript Typecheck** | 🟢 Passed | `tsc --noEmit` exits 0 (0 errors). |
 | **ESLint** | 🟢 Passed | `eslint` exits 0 (0 warnings, 0 errors). |
 | **Prettier** | 🟢 Passed | Codebase 100% formatted to standard. |
-| **Vitest Tests** | 🟢 Passed | 22 test files, 122/122 tests passing (~7.6s runtime). |
+| **Vitest Tests** | 🟢 Passed | 23 test files, 128/128 tests passing (~7.8s runtime). |
+| **HTML Dashboard** | 🟢 Passed | Self-contained validation, 12 sections, deterministic output, XSS protection, and reporter file writing. |
 | **Plugin Architecture** | 🟢 Passed | Registration, unregistration, validation, sandboxing, traversal protection, setup hooks, rule overrides, fail-safe crash isolation, React plugin findings. |
 | **Dependency Intelligence** | 🟢 Passed | Static lockfile parsing (v1/v2/v3 package-lock, yarn.lock, pnpm), duplicate version detection, suspicious specifiers, high-confidence unused deps, OSV & registry queries. |
 | **Architecture Intelligence** | 🟢 Passed | Import extraction, alias resolution, Tarjan's SCC cycle detection, boundary violations, CLI `--architecture` visual tree. |
@@ -330,7 +355,7 @@ Fathom provides a stable, safe, and sandboxed plugin subsystem that allows exter
 
 ---
 
-## 14. Deployment & Publishing Guide
+## 15. Deployment & Publishing Guide
 
 ### Step 1: Add NPM Token to GitHub Secrets
 1. Log in to [npmjs.com](https://www.npmjs.com/) and go to **Access Tokens**.

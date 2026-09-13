@@ -670,6 +670,39 @@ Built into Fathom as a reference implementation:
 
 ---
 
+## 💻 Interactive Developer Dashboard (HTML)
+
+Generate a polished, standalone, interactive single-file dashboard for any repository:
+
+```bash
+fathom --html report.html
+```
+
+Or compare against a baseline and generate an interactive regression report:
+
+```bash
+fathom --compare --html report.html
+```
+
+### Dashboard Features:
+- **100% Self-Contained**: Zero external CDNs, fonts, tracking scripts, or network calls. Opens instantly and safely in any browser offline or in air-gapped CI/CD environments.
+- **12 Comprehensive Sections**:
+  1. **Overall Health Hero**: Health score, color-coded status badge, and repository metadata tags.
+  2. **Category Health Breakdown**: Visual progress bars and weighted contributions for each health dimension.
+  3. **Severity Distribution**: Proportional distribution bar across Critical, High, Medium, Low, and Info findings.
+  4. **Top Actionable Priorities**: Callout cards highlighting high-confidence vulnerabilities and issues requiring immediate attention.
+  5. **Regression & Baseline Banner**: Real-time diff metrics highlighting score regressions and newly introduced findings.
+  6. **Architecture Overview**: Graph metrics, detected layers, and circular dependency cycle warnings.
+  7. **Dependency Summary**: Direct vs transitive counts, duplicate versions, and lockfile status.
+  8. **Testing Maturity**: Test-to-source ratio, detected test directories, and test script presence.
+  9. **Git Hygiene**: Uncommitted working tree state, large binary files, and `.gitignore` status.
+  10. **Documentation Matrix**: Readiness checklist for README, LICENSE, CONTRIBUTING, and SECURITY policy.
+  11. **CI/CD Automation**: GitHub Actions workflow health and automation status.
+  12. **Interactive Finding Explorer**: Real-time text search, severity filter toggles, category dropdown, multi-attribute sorting (severity, rule ID, file, confidence), and collapsible syntax-highlighted code evidence viewers.
+- **Deterministic & XSS-Safe**: HTML output is deterministic byte-for-byte with strict entity escaping.
+
+---
+
 ## 🛡️ Security Model
 
 Fathom treats target repositories as **untrusted input**:
