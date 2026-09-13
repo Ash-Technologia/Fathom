@@ -1,6 +1,7 @@
 # FATHOM
 
-> **Know what's beneath the surface.**
+> **Know what's beneath the surface.**  
+> A local-first, privacy-respecting repository intelligence platform and developer CLI.
 
 [![CI](https://github.com/Ash-Technologia/Fathom/actions/workflows/ci.yml/badge.svg)](https://github.com/Ash-Technologia/Fathom/actions)
 [![npm version](https://img.shields.io/npm/v/@ash-technologia/fathom.svg)](https://www.npmjs.com/package/@ash-technologia/fathom)
@@ -9,305 +10,387 @@
 [![GitHub Action](https://img.shields.io/badge/action-Ash--Technologia%2FFathom-blue?logo=githubactions)](https://github.com/Ash-Technologia/Fathom)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](https://github.com/Ash-Technologia/Fathom/blob/main/CONTRIBUTING.md)
 
-**Fathom** is a local-first repository intelligence CLI for developers. It analyzes software repositories and produces an actionable understanding of health, architecture, security hygiene, Git hygiene, dependencies, testing maturity, documentation quality, and CI/CD readiness.
+---
+
+## 📖 Table of Contents
+
+- [⚡ Quick Start](#-quick-start)
+- [🎯 What Exactly Does Fathom Do?](#-what-exactly-does-fathom-do)
+  - [1. Architecture Intelligence](#1-architecture-intelligence)
+  - [2. Security Hygiene](#2-security-hygiene)
+  - [3. Dependency Intelligence](#3-dependency-intelligence)
+  - [4. Git Hygiene](#4-git-hygiene)
+  - [5. Code Quality](#5-code-quality)
+  - [6. Testing Maturity](#6-testing-maturity)
+  - [7. Documentation Completeness](#7-documentation-completeness)
+  - [8. CI/CD Readiness](#8-cicd-readiness)
+  - [9. PR Diff & Baseline Regression Tracking](#9-pr-diff--baseline-regression-tracking)
+- [📦 Installation](#-installation)
+- [🚀 Usage Guide & CLI Commands](#-usage-guide--cli-commands)
+  - [Basic Analysis](#basic-analysis)
+  - [Interactive Developer Dashboard (HTML)](#interactive-developer-dashboard-html)
+  - [GitHub Code Scanning & SARIF](#github-code-scanning--sarif)
+  - [PR & Git Diff Intelligence](#pr--git-diff-intelligence)
+  - [Baseline & Regression Tracking](#baseline--regression-tracking)
+  - [Architecture Graph Explorer](#architecture-graph-explorer)
+  - [Dependency Inventory & Vulnerability Scanning](#dependency-inventory--vulnerability-scanning)
+  - [CI/CD Quality Gates](#cicd-quality-gates)
+- [📊 Terminal Experience](#-terminal-experience)
+- [🤖 GitHub Actions Integration](#-github-actions-integration)
+- [⚙️ Configuration (.fathomignore & .fathom.json)](#️-configuration-fathomignore--fathomjson)
+- [🔌 Plugin Architecture](#-plugin-architecture)
+- [📋 Complete Rules Reference (26 Core Rules + Plugins)](#-complete-rules-reference-26-core-rules--plugins)
+- [🛡️ Security & Privacy Guarantees](#️-security--privacy-guarantees)
+- [🤝 Contributing & License](#-contributing--license)
 
 ---
 
 ## ⚡ Quick Start
 
-Analyze any repository directly with `npx`:
+Run Fathom instantly without installing anything:
 
 ```bash
 npx @ash-technologia/fathom .
 ```
 
-Or install globally:
+Generate an interactive HTML dashboard:
 
 ```bash
-npm install -g @ash-technologia/fathom
-fathom .
+npx @ash-technologia/fathom . --html report.html
 ```
 
 ---
 
-## 🧭 Why Fathom?
+## 🎯 What Exactly Does Fathom Do?
 
-Most linters focus exclusively on syntax or code formatting, and full security scanners are often slow, cloud-dependent, or noisy.
+Most developer tools are narrow:
+- **Linters** (ESLint, Biome) check single files for formatting or syntax errors.
+- **Security Scanners** (Snyk, SonarQube) are slow, send your proprietary code to cloud servers, or flood you with noise.
+- **Package Managers** only see manifest files, not how dependencies interact with your code.
 
-Fathom answers a different question:
+**Fathom answers the macro questions:**
+> *"What is really going on inside this codebase? What architectural flaws, credential leaks, dependency bloat, or test deficiencies should I fix before shipping?"*
 
-> *"What is really going on inside this codebase, and what should I address before continuing work or shipping it?"*
+Fathom analyzes your entire codebase in a **single, unified pass (<400ms)** completely offline and on your machine. It assesses 8 core health dimensions:
 
-### Core Principles
+```
+┌─────────────────────────────────────────────────────────────┐
+│                       FATHOM ENGINE                         │
+├───────────────┬───────────────┬───────────────┬─────────────┤
+│ 🏛️ Arch Graph │ 🔒 Security   │ 📦 Deps       │ 🌿 Git      │
+│ Cycles, Layers│ Secret Leaks  │ Lockfile Sync │ Large Files │
+├───────────────┼───────────────┼───────────────┼─────────────┤
+│ ✨ Quality    │ 🧪 Testing    │ 📚 Docs       │ ⚙️ CI/CD    │
+│ Empty Catches │ Source Ratio  │ Policy & Read │ Automation  │
+└───────────────┴───────────────┴───────────────┴─────────────┘
+```
 
-- 🔒 **Local-First & Privacy-Focused**: Never uploads code or telemetry. Safe, read-only operations only.
-- 🎯 **Deterministic**: Same repository state produces the exact same score and findings every time.
-- 🚫 **Safe Secrets Handling**: Detects exposed credentials without ever printing or logging secret values.
-- 🧩 **Extensible Architecture**: 9 isolated analyzers with typed findings, metrics, and scoring.
-- ⚡ **Blazing Fast**: Single filesystem traversal index; completes typical repository scans in under 200ms.
+### 1. Architecture Intelligence
+- Builds an **in-memory module graph** from static import/export declarations without executing your code.
+- Resolves path aliases from `tsconfig.json` / `jsconfig.json`.
+- Detects **circular dependency chains** (`ARCH-002`) using Tarjan's Strongly Connected Components (SCC) algorithm.
+- Identifies **cross-layer architectural boundary violations** (`ARCH-003`), such as backend code importing UI views or frontend bundles importing server/Node.js primitives (`child_process`, `fs`, `net`).
+- Flags **excessive module fan-out coupling** (`ARCH-004`), **oversized monolithic files** (`ARCH-005`), and **orphaned/unreferenced source files** (`ARCH-006`).
+
+### 2. Security Hygiene
+- Scans for **hardcoded credentials, API keys, private tokens, and database passwords** in source files (`SEC-002`).
+- Detects committed **private key files** (`.pem`, `id_rsa`, `.key`) (`SEC-003`) and sensitive configuration files (`SEC-004`).
+- Verifies that `.env` files are properly ignored in `.gitignore` (`SEC-001`).
+- Flags passwords or tokens embedded directly in connection URLs (`SEC-005`).
+- **Zero Secret Leakage Guarantee**: Secret values are **never** logged, printed, or saved—only file locations and line numbers are recorded.
+
+### 3. Dependency Intelligence
+- Deep offline inspection of `package.json`, `Cargo.toml`, and lockfiles (`package-lock.json` v1/v2/v3, `yarn.lock`, `pnpm-lock.yaml`).
+- Detects **missing lockfiles** (`DEP-003`) and **package manager / lockfile mismatches** (`DEP-004`).
+- Finds **duplicate dependency versions** (`DEP-008`) bloating bundle sizes.
+- Flags **suspicious dependency configurations** (`DEP-006`): wildcards (`*`), raw Git URLs, or packages declared in both `dependencies` and `devDependencies`.
+- Flags **high-confidence unused production dependencies** (`DEP-010`) cross-checked against actual static imports.
+- **Opt-In Online Mode (`--online`)**: Queries the OSV (Open Source Vulnerabilities) API (`DEP-007`) and npm registry freshness (`DEP-009`) with strict timeouts and silent offline fallback.
+
+### 4. Git Hygiene
+- Checks for initialized Git repositories and valid `.gitignore` rules (`GIT-001`, `GIT-002`).
+- Detects committed build artifacts and generated directories (`node_modules/`, `dist/`, `.next/`, `build/`) (`GIT-003`).
+- Detects accidental commits of **large binary files (>10MB)** (`GIT-004`).
+- Tracks uncommitted dirty working tree states (`GIT-005`).
+
+### 5. Code Quality
+- Pinpoints **empty catch blocks** (`QUAL-004`) that silently swallow runtime errors.
+- Flags leftover **debug statements** (`console.log`, `debugger`, `print`) in production code (`QUAL-003`).
+- Highlights unresolved `TODO` (`QUAL-001`) and `FIXME` (`QUAL-002`) comment counts scoped strictly to comments.
+- Warns on deep directory nesting (>6 levels) (`QUAL-006`) and monolithic files (>500 lines) (`QUAL-005`).
+
+### 6. Testing Maturity
+- Calculates the **test-to-source file ratio** (`TEST-004`) to give an accurate picture of test coverage maturity.
+- Verifies standardized test directories (`tests/`, `__tests__/`, `spec/`) (`TEST-001`).
+- Validates the existence and configuration of test runners and npm test scripts (`TEST-003`).
+
+### 7. Documentation Completeness
+- Checks for essential repository documentation: `README.md` (`DOC-001`), `LICENSE` (`DOC-004`), `CONTRIBUTING.md` (`DOC-005`), and `SECURITY.md` (`DOC-006`).
+- Analyzes `README.md` structure for required sections: project description, installation guide, and usage instructions (`DOC-002`, `DOC-003`, `DOC-007`).
+
+### 8. CI/CD Readiness
+- Validates the presence of automated CI/CD workflows (`CI-001`, `CI-002`).
+- Inspects GitHub Actions workflows to confirm that automated testing (`CI-003`) and build steps (`CI-004`) run on pull requests and pushes.
+
+### 9. PR Diff & Baseline Regression Tracking
+- **PR Intelligence (`fathom --diff`)**: Evaluates only the changes introduced in a Git diff against a base branch (`main`). Categorizes findings into **New**, **Touched**, and **Resolved**, calculating exact score deltas (`91 → 84 (-7 points)`).
+- **Baseline Engine (`fathom --baseline` / `fathom --compare`)**: Save a snapshot of your repository health in `.fathom/baseline.json`. Future runs detect score regressions and newly introduced findings during pre-commit or CI/CD checks.
 
 ---
 
-## 📊 Terminal UX
+## 📦 Installation
 
-Running `fathom .` produces a clean, readable overview:
+### Option 1: Instant Run with NPX (No Installation Required)
+```bash
+npx @ash-technologia/fathom .
+```
+
+### Option 2: Global Installation via NPM / Yarn / PNPM
+```bash
+# Using npm
+npm install -g @ash-technologia/fathom
+
+# Using yarn
+yarn global add @ash-technologia/fathom
+
+# Using pnpm
+pnpm add -g @ash-technologia/fathom
+
+# Verify installation
+fathom --version
+```
+
+### Option 3: Local Development Dependency
+Install Fathom as a dev dependency in your project:
+```bash
+npm install --save-dev @ash-technologia/fathom
+```
+Add it to your `package.json` scripts:
+```json
+{
+  "scripts": {
+    "fathom": "fathom .",
+    "fathom:ci": "fathom . --ci --fail-under 80",
+    "fathom:html": "fathom . --html fathom-report.html"
+  }
+}
+```
+
+---
+
+## 🚀 Usage Guide & CLI Commands
+
+### Basic Analysis
+
+```bash
+# Analyze the current directory
+fathom .
+
+# Analyze a specific repository path
+fathom /path/to/my-project
+
+# Verbose output (displays all findings without truncation)
+fathom . --verbose
+```
+
+---
+
+### Interactive Developer Dashboard (HTML)
+
+Generate a self-contained, interactive single-file HTML dashboard:
+
+```bash
+fathom . --html report.html
+```
+
+#### Why it's special:
+- **100% Self-Contained**: Zero external CDNs, Google Fonts, or tracking scripts. Works offline and in air-gapped environments.
+- **12 Interactive Sections**: Overall health score hero, category breakdowns, severity distribution, top priorities, architecture overview, dependency summary, testing maturity, Git hygiene, documentation matrix, CI/CD health, and an interactive finding explorer.
+- **Client-Side Filtering & Search**: Instant filtering by severity, category, keyword search, multi-column sorting, and collapsible code evidence viewers.
+
+---
+
+### GitHub Code Scanning & SARIF
+
+Export standard **SARIF 2.1.0** (Static Analysis Results Interchange Format) to stdout or save directly to a file for GitHub Code Scanning:
+
+```bash
+# Output SARIF to stdout
+fathom . --sarif
+
+# Save SARIF report directly to file
+fathom . --sarif -o fathom.sarif
+```
+
+---
+
+### PR & Git Diff Intelligence
+
+Analyze only changes introduced in a Git branch or pull request:
+
+```bash
+# Auto-detect base branch and analyze git diff
+fathom --diff
+
+# Compare changes against a specific branch or commit ref
+fathom --diff main
+fathom --diff origin/main
+fathom --diff HEAD~1
+
+# Export PR analysis as JSON
+fathom --diff main --json
+
+# Generate Markdown PR summary (for PR comments or GitHub step summaries)
+fathom --diff main --summary pr-summary.md
+```
+
+---
+
+### Baseline & Regression Tracking
+
+Prevent quality degradation by benchmarking your repository:
+
+```bash
+# 1. Save current state as baseline (.fathom/baseline.json)
+fathom --baseline
+
+# 2. After making changes, compare against baseline
+fathom --compare
+
+# 3. Output comparison to JSON or interactive HTML dashboard
+fathom --compare --json
+fathom --compare --html regression-report.html
+
+# 4. Fail CI if a regression is detected
+fathom --compare --ci
+```
+
+---
+
+### Architecture Graph Explorer
+
+Inspect the in-memory architectural model, detected layers, and graph warnings:
+
+```bash
+fathom --architecture
+```
+
+Output includes:
+- Architecture layout classification (Monorepo, Clean Architecture, MVC, Flat)
+- Detected layers (Frontend, Backend, Shared, API)
+- Circular dependency loops with exact cycle paths
+- Suspicious cross-layer imports and boundary violations
+- Fan-out coupling and monolithic module warnings
+
+---
+
+### Dependency Inventory & Vulnerability Scanning
+
+Deeply inspect package manifests and lockfiles:
+
+```bash
+# Offline analysis (direct vs transitive, lockfile sync, duplicates, unused)
+fathom --deps
+
+# Opt-in online analysis (queries OSV vulnerability database & npm registry)
+fathom --deps --online
+```
+
+---
+
+### CI/CD Quality Gates
+
+Enforce minimum repository health in CI pipelines:
+
+```bash
+# CI mode (compact logging, exits 1 on critical/high findings)
+fathom . --ci
+
+# Fail build if health score drops below threshold (e.g., 80)
+fathom . --ci --fail-under 80
+
+# Fail build if PR diff introduces new findings
+fathom --diff main --ci
+```
+
+#### Exit Codes
+
+| Code | Meaning |
+|:---:|:---|
+| **`0`** | Analysis successful and meets health thresholds. |
+| **`1`** | Analysis complete, but `--fail-under` threshold failed, critical findings exist in CI mode, regression detected, or PR diff introduces findings. |
+| **`2`** | Invalid CLI usage, missing/corrupted baseline, Git diff error (e.g. unresolvable ref), or invalid configuration file. |
+| **`3`** | Repository access error or fatal system failure. |
+
+---
+
+## 📊 Terminal Experience
+
+Running `fathom .` outputs a beautiful, clean summary:
 
 ```text
                          FATHOM
             Know what's beneath the surface.
 
-Scanning my-app...
-
-Detected: Node.js, TypeScript, React, Next.js
+Detected: Node.js, TypeScript, React
 
 ────────────────────────────────────────────────────────
 
 HEALTH
 
-                        88 / 100
-                        Healthy
+                        96 / 100
+                       Excellent
 
   Project              100
-  Git                   94
-  Security              85
-  Dependencies          90
-  Code Quality          85
-  Testing               80
-  Documentation         85
-  CI/CD                 90
+  Git                  100
+  Security             100
+  Dependencies          88
+  Code Quality          95
+  Testing              100
+  Documentation        100
+  CI/CD                100
 
 ────────────────────────────────────────────────────────
 
 ATTENTION
 
 HIGH
-  Environment file may not be gitignored: .env
-  .env
+  Potential secret detected in source code: API_KEY (src/config.ts:14)
 
 MEDIUM
-  Low test-to-source file ratio
-  Test files represent only 8% of source files (2 tests vs 24 source files).
+  Empty catch block silently swallows error (src/utils/parser.ts:42)
 
 LOW
-  12 debug statements found across source files
+  Duplicate dependency versions: eslint-visitor-keys (v2.1.0 vs v3.4.3)
+  2 debug statements found in production source files
 
 ────────────────────────────────────────────────────────
 
 NEXT STEPS
 
-  1. Add ".env" to .gitignore to prevent accidental commits.
-  2. Increase test coverage for critical application logic.
-  3. Remove or gate debug statements before shipping to production.
+  1. Move API_KEY to an environment variable and rotate immediately.
+  2. Add logging or error handling in empty catch block (src/utils/parser.ts).
+  3. Deduplicate versions using package manager dedupe (e.g. `npm dedupe`).
 
 ────────────────────────────────────────────────────────
 
-  ✓ Project
-  ✓ Git
-  ✓ Security
-  ✓ Dependencies
-  ✓ Code Quality
-  ✓ Testing
-  ✓ Documentation
-  ✓ CI/CD
-  ✓ Architecture
+  ✓ Project      ✓ Git           ✓ Security
+  ✓ Dependencies ✓ Code Quality  ✓ Testing
+  ✓ Documentation✓ CI/CD         ✓ Architecture
 
-Completed in 142ms
+Completed in 184ms
 ```
 
 ---
 
-## 🛠️ CLI Commands & Options
+## 🤖 GitHub Actions Integration
 
-```bash
-# Analyze current directory
-fathom .
+### 1. Automated Health & Security Scanning with SARIF Alerts
 
-# Analyze specific repository path
-fathom /path/to/repo
-
-# Output machine-readable JSON to stdout
-fathom --json
-
-# Save JSON report directly to a file
-fathom --json -o report.json
-
-# Output SARIF 2.1.0 to stdout
-fathom --sarif
-
-# Save SARIF 2.1.0 report directly to a file for GitHub Code Scanning
-fathom --sarif -o fathom.sarif
-
-# Display all findings without truncation (disables the default 10-finding limit)
-fathom --verbose
-
-# Generate self-contained HTML report
-fathom --html report.html
-
-# Save a deterministic baseline to .fathom/baseline.json
-fathom --baseline
-
-# Compare current analysis against saved baseline and report regressions
-fathom --compare
-
-# Compare against baseline and output machine-readable JSON
-fathom --compare --json
-
-# Compare against baseline and generate interactive HTML report
-fathom --compare --html report.html
-
-# Analyze changes introduced by Git diff (auto-detects base branch)
-fathom --diff
-
-# Analyze changes against a specific branch, commit, or remote ref
-fathom --diff main
-fathom --diff HEAD~1
-fathom --diff origin/main
-
-# PR analysis with machine-readable JSON output
-fathom --diff main --json
-
-# View architecture hierarchy and graph warnings in terminal
-fathom --architecture
-
-# Inspect dependency inventory and lockfile metrics (offline)
-fathom --deps
-
-# Inspect dependency inventory with opt-in vulnerability & freshness checks
-fathom --deps --online
-
-# Run in CI mode (compact logging, fails if critical/high findings exist)
-fathom --ci
-
-# Fail CI build if overall health score is below threshold, regression is detected, or PR diff introduces findings
-fathom --ci --fail-under 80
-
-# Display version or help
-fathom --version
-fathom --help
-```
-
-### Exit Codes
-
-| Code | Meaning |
-|:----:|:--------|
-| **0** | Analysis successful and meets health thresholds |
-| **1** | Analysis complete, but `--fail-under` threshold failed, critical findings found in CI mode, regression detected in CI mode, or PR diff introduces findings |
-| **2** | Invalid CLI usage, missing/corrupted baseline, Git diff error (e.g. not a git repo, unresolvable base ref), or configuration syntax error |
-| **3** | Repository access error or fatal system failure |
-
----
-
-## 🔀 Pull Request & Git Diff Intelligence
-
-Fathom extends beyond isolated file scanning with **PR-aware Git Diff Intelligence**. Instead of inspecting modified files in a vacuum, Fathom evaluates changes against the complete repository context:
-
-```
-Git Diff
-   ↓
-RepositoryContext
-   ↓
-Affected files
-   ↓
-Existing analyzers/rules
-   ↓
-Finding comparison
-   ↓
-PR report
-```
-
-### How It Works:
-1. **Safe Git Operations**: Invokes Git strictly through `child_process.execFile` in read-only mode (`git rev-parse`, `git diff`, `git show`, `git merge-base`). Never modifies working tree, never checks out branches, never executes repository scripts.
-2. **Whole-Repository Shadow Context**: Reconstructs base file versions for changed files using in-memory/temp shadow buffers, keeping untouched files referenced directly on disk. Runs all 26 rules across full architectural relationships.
-3. **Three-Way Finding Categorization**:
-   - **New Findings**: Issues introduced by added or modified lines in the pull request.
-   - **Touched Findings**: Pre-existing issues within files touched by the diff.
-   - **Resolved Findings**: Issues previously present that were eliminated by the PR.
-4. **Health & Category Impact**: Computes overall health score delta (`91 → 84 (-7 points)`) and per-category scoring shifts (Security, Quality, Testing, etc.).
-5. **Git Resilience**: Gracefully handles detached HEAD states, shallow clones (providing actionable fetch guidance), merge commits, and binary files.
-
-Example terminal output:
-```text
-                   FATHOM PR ANALYSIS
-────────────────────────────────────────────────────────
-
-Changed:
-  8 files
-  +312 lines
-  -87 lines
-
-Health:
-  91 → 84
-  -7 points
-
-NEW FINDINGS
-  🔴 SEC-002
-  Potential secret detected
-
-  🟠 QUAL-004
-  Empty catch block
-
-RESOLVED
-  ✓ TEST-004
-
-CATEGORY IMPACT
-  Security       -12
-  Quality         -4
-  Testing         +3
-
-VERDICT
-  ⚠ Changes introduce 2 findings
-```
-
----
-
-## 📉 Baseline & Regression Tracking
-
-Fathom supports deterministic repository baselines to detect regressions over time or during CI/CD checks:
-
-1. **Create a baseline**:
-   ```bash
-   fathom --baseline
-   ```
-   Analyzes the repository and saves `.fathom/baseline.json` containing only scores, metrics, rule IDs, and safe evidence — never secret values or repository source code.
-
-2. **Compare current analysis**:
-   ```bash
-   fathom --compare
-   ```
-   Detects:
-   - Overall health score change (e.g. `91 → 84 (-7)`)
-   - Category score changes
-   - Newly introduced findings (`+`)
-   - Resolved findings (`-`)
-   - Unchanged & modified findings
-   - Regression verdict (`REGRESSION: YES / NO`)
-
-3. **Export reports**:
-   - `fathom --compare --json`: Attaches regression comparison data to the JSON output.
-   - `fathom --compare --html report.html`: Generates an interactive visual report with dedicated regression breakdown.
-
----
-
-## 🏛️ Architecture Intelligence
-
-Fathom includes a lightweight in-memory architecture graph analyzer that inspects import/export topologies without executing project code:
-
-- **Static Import Parsing**: Scans ESM, CommonJS, dynamic imports, and Python modules.
-- **Path Alias Resolution**: Honors `tsconfig.json` / `jsconfig.json` `compilerOptions.paths` and `baseUrl`.
-- **Circular Dependency Detection (`ARCH-002`)**: Uses Tarjan's SCC algorithm to detect directed import loops.
-- **Layer Boundary Violations (`ARCH-003`)**: Detects backend code referencing UI components, or client code referencing server-only primitives (`child_process`, `fs`, `net`, etc.).
-- **Deep Coupling & Sizing (`ARCH-004`, `ARCH-005`)**: Flags excessive fan-out imports and large monolithic files requiring decomposition.
-- **Orphaned File Detection (`ARCH-006`)**: Identifies dead, unreferenced source modules.
-- **CLI View**: Run `fathom --architecture` for a visual tree of layers and graph warnings.
-
----
-
-## 🤖 GitHub Action Integration
-
-You can run Fathom directly in your GitHub Actions workflows with zero extra configuration:
+Add `.github/workflows/fathom.yml` to run Fathom on every commit and upload findings directly to GitHub Code Scanning:
 
 ```yaml
-name: Repository Intelligence
+name: Fathom Repository Intelligence
 
 on:
   push:
@@ -316,9 +399,12 @@ on:
     branches: [main]
 
 jobs:
-  fathom:
-    name: Repository Health Check
+  scan:
+    name: Fathom Health Check
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -330,7 +416,7 @@ jobs:
           html: 'fathom-report.html'
           sarif: 'fathom.sarif'
 
-      - name: Upload HTML Report
+      - name: Upload HTML Report Artifact
         uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -343,185 +429,49 @@ jobs:
         with:
           sarif_file: fathom.sarif
           category: fathom
-
-  fathom-pr:
-    name: PR Intelligence & Step Summary
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      pull-requests: write # Required only if pr-comment: 'true'
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Full history needed for base ref diff
-
-      - name: Run Fathom PR Intelligence
-        uses: Ash-Technologia/Fathom@main
-        with:
-          diff: 'true' # Automatically resolves github.base_ref
-          pr-comment: 'true'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
-
-### GitHub Actions Step Summary & PR Comments
-
-When running in GitHub Actions:
-- **Automatic Step Summary**: If running under a `pull_request` event or when `--diff` is analyzed, Fathom automatically generates and writes a concise Markdown summary to `$GITHUB_STEP_SUMMARY`.
-- **PR Commenting**: Passing `--pr-comment` posts the concise PR health and findings table directly as a review comment on the pull request.
-- **Offline / Local Execution**: When executed locally, Fathom runs completely offline without needing GitHub credentials or network connectivity. Tokens are never logged or exposed.
-- **Custom Summary File**: Output Markdown directly to any file via `fathom --diff [ref] --summary pr-summary.md`.
 
 ---
 
-## 🛡️ GitHub Code Scanning & SARIF 2.1.0 Integration
+### 2. PR Intelligence & Automated Review Comments
 
-Fathom natively exports findings in standard **SARIF 2.1.0** (Static Analysis Results Interchange Format) format, which integrates seamlessly into GitHub Code Scanning:
-
-```
-Fathom
-  ↓
-SARIF (fathom --sarif -o fathom.sarif)
-  ↓
-GitHub Code Scanning (github/codeql-action/upload-sarif)
-  ↓
-Security & Quality Alerts in GitHub Security tab & PRs
-```
-
-### Standalone GitHub Actions Workflow
-
-To run Fathom via npm/npx and upload results directly to GitHub Code Scanning:
+Automatically comment on pull requests with exact score deltas and new findings:
 
 ```yaml
-name: Security & Health Scanning
+name: PR Intelligence
 
 on:
-  push:
-    branches: [main]
   pull_request:
     branches: [main]
 
 jobs:
-  fathom-scan:
-    name: Fathom SARIF Analysis
+  pr-review:
+    name: Fathom PR Analysis
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
       contents: read
+      pull-requests: write # Required for posting PR comments
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          fetch-depth: 0 # Full history needed for base ref comparison
 
-      - name: Run Fathom SARIF Analysis
-        run: npx @ash-technologia/fathom . --sarif -o fathom.sarif
-
-      - name: Upload SARIF to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
+      - name: Run Fathom PR Intelligence
+        uses: Ash-Technologia/Fathom@main
         with:
-          sarif_file: fathom.sarif
-          category: fathom
+          diff: 'true'
+          pr-comment: 'true'
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 ```
 
 ---
 
-## 🔍 Analyzers & Rules (26 Core Rules)
-
-Fathom evaluates repositories across **9 isolated analyzers**:
-
-| Rule ID | Category | Title | Severity |
-|:---|:---|:---|:---:|
-| `PROJ-001` | Project | Ecosystem detection (Node.js, Python, Go, Rust, Java, PHP) | `info` |
-| `PROJ-002` | Project | Framework detection (React, Next.js, Vue, Angular, Express, FastAPI, etc.) | `info` |
-| `PROJ-003` | Project | Package manager detection (npm, pnpm, yarn, poetry, cargo, etc.) | `info` |
-| `PROJ-004` | Project | Repository size & file count heuristics | `info` |
-| `GIT-001` | Git | Git repository initialized check | `medium` |
-| `GIT-002` | Git | `.gitignore` existence | `medium` |
-| `GIT-003` | Git | Generated directory ignore checks (`node_modules`, `dist`, `target`, etc.) | `medium` |
-| `GIT-004` | Git | Detection of large files committed (>10 MB) | `high` |
-| `GIT-005` | Git | Uncommitted changes status (informational, does not penalize) | `info` |
-| `GIT-006` | Git | Empty repository (no commits) check | `low` |
-| `SEC-001` | Security | `.env` not ignored by Git | `high` |
-| `SEC-002` | Security | Potential credentials/secrets in source code (AWS keys, tokens, etc.) | `high` |
-| `SEC-003` | Security | Private key files present (`id_rsa`, `.pem`, `.key`) | `critical` |
-| `SEC-004` | Security | Tracked credential/config files (`secrets.json`, etc.) | `high` |
-| `SEC-005` | Security | Credentials embedded in connection URLs | `high` |
-| `DEP-001` | Dependencies | Manifest detection (`package.json`, `Cargo.toml`, etc.) | `info` |
-| `DEP-002` | Dependencies | Lockfile detection (`package-lock.json`, `pnpm-lock.yaml`, etc.) | `info` |
-| `DEP-003` | Dependencies | Missing lockfile when manifest is present | `medium` |
-| `DEP-004` | Dependencies | Package manager / lockfile mismatch | `low` |
-| `DEP-005` | Dependencies | Total dependencies declared | `info` |
-| `DEP-006` | Dependencies | Suspicious dependency configuration (wildcards, git URLs, duplicate declarations) | `medium` |
-| `DEP-007` | Dependencies | Known security vulnerabilities detected in dependencies (online) | `high` |
-| `DEP-008` | Dependencies | Duplicate versions of the same package installed | `low` |
-| `DEP-009` | Dependencies | Outdated major/minor dependencies detected (online) | `low` |
-| `DEP-010` | Dependencies | Unused production dependency declared in manifest | `low` |
-| `QUAL-001` | Quality | TODO comment count | `low` |
-| `QUAL-002` | Quality | FIXME comment count | `medium` |
-| `QUAL-003` | Quality | Debug/console statements left in code (`console.log`, `debugger`, etc.) | `low` |
-| `QUAL-004` | Quality | Empty catch blocks | `medium` |
-| `QUAL-005` | Quality | Extremely large source files (>500 lines) | `low` |
-| `QUAL-006` | Quality | Deep directory nesting (>6 levels) | `low` |
-| `TEST-001` | Testing | Standard test directory detection | `low` |
-| `TEST-002` | Testing | Test files detection | `medium` |
-| `TEST-003` | Testing | Test scripts in package manifest | `medium` |
-| `TEST-004` | Testing | Test-to-source file ratio heuristic | `medium` |
-| `DOC-001` | Documentation | `README.md` exists | `medium` |
-| `DOC-002` | Documentation | Installation instructions present in README | `low` |
-| `DOC-003` | Documentation | Usage instructions present in README | `low` |
-| `DOC-004` | Documentation | `LICENSE` exists | `medium` |
-| `DOC-005` | Documentation | `CONTRIBUTING.md` exists | `low` |
-| `DOC-006` | Documentation | `SECURITY.md` exists | `low` |
-| `DOC-007` | Documentation | Project description present in README | `low` |
-| `CI-001` | CI/CD | GitHub Actions workflows detected | `info` |
-| `CI-002` | CI/CD | CI/CD configuration presence | `medium` |
-| `CI-003` | CI/CD | Test execution detected in CI | `medium` |
-| `CI-004` | CI/CD | Build step detected in CI | `low` |
-| `ARCH-001` | Architecture | Project layout & structure observations | `info` |
-| `ARCH-002` | Architecture | Circular import dependencies detected | `high` |
-| `ARCH-003` | Architecture | Suspicious cross-layer import or boundary violation | `high` |
-| `ARCH-004` | Architecture | Deep fan-out coupling to internal modules | `low` |
-| `ARCH-005` | Architecture | Large monolithic module decomposition indicator | `low` |
-| `ARCH-006` | Architecture | Orphaned source file unreferenced across repository | `info` |
-
----
-
-## 📈 Scoring System
-
-Fathom calculates individual 0–100 scores for each category based on deductions from detected findings:
-
-| Category | Weight |
-|:---|:---:|
-| **Security** | 20% |
-| **Git** | 15% |
-| **Project Structure** | 15% |
-| **Testing** | 15% |
-| **Dependencies** | 10% |
-| **Documentation** | 10% |
-| **Code Quality** | 10% |
-| **CI/CD** | 5% |
-
-### Score Bands
-
-- **90–100**: Excellent
-- **75–89**: Healthy
-- **60–74**: Fair
-- **40–59**: Needs Attention
-- **0–39**: Critical
-
----
-
-## ⚙️ Configuration & Repository Targeting
+## ⚙️ Configuration (.fathomignore & .fathom.json)
 
 ### 1. `.fathomignore`
 
-Create a `.fathomignore` file in the root of your repository to specify repository-specific exclusion patterns using familiar gitignore-style syntax:
+Create a `.fathomignore` file in the root of your repository to exclude specific folders and files using standard `.gitignore` syntax:
 
 ```text
 # Exclude code generation and vendor directories
@@ -529,133 +479,60 @@ generated/
 vendor/
 legacy/
 
-# Exclude generated artifacts
+# Exclude generated artifacts & minified bundles
 *.generated.ts
 *.min.js
+fixtures/**
 ```
-
-- Comments starting with `#` and blank lines are ignored.
-- Trailing slashes automatically match directories and all nested contents.
-- Patterns are merged deterministically with `.fathom.json` and built-in ignore lists.
 
 ---
 
 ### 2. `.fathom.json`
 
-Customize rules, thresholds, and quality gates with a `.fathom.json` configuration file:
+Fine-tune rule severity, thresholds, and ignore lists in `.fathom.json`:
 
 ```json
 {
   "version": 1,
   "ignore": [
-    "fixtures/**"
+    "scripts/**",
+    "docs/samples/**"
   ],
   "rules": {
     "QUAL-001": "warning",
-    "QUAL-005": "off"
+    "QUAL-005": "off",
+    "ARCH-002": "error"
   },
-  "failUnder": 75
+  "failUnder": 80
 }
 ```
 
 #### Rule States:
-- `"off"`: Disables the rule completely.
-- `"warning"`: Enables the rule at warning severity.
-- `"error"`: Enables the rule at error severity (triggers CI failure if violated).
+- `"off"`: Completely disables the rule.
+- `"warning"`: Flags the finding as a warning.
+- `"error"`: Elevates finding to an error (triggers CI failure under `--ci`).
 
-#### Security Safeguards:
-To prevent unintentional security vulnerabilities, Fathom **does not allow configuration to silently disable critical security checks** (e.g. `SEC-001` through `SEC-005`).
-Disabling a security rule requires explicit authorization:
+#### 🔒 Security Guardrails:
+Fathom **prohibits silently disabling security rules** (`SEC-001` through `SEC-005`). Disabling a security check requires explicit documentation or global opt-in:
+
 ```json
 {
   "version": 1,
   "rules": {
     "SEC-002": {
       "enabled": false,
-      "reason": "Handled upstream by pre-commit secrets hook"
+      "reason": "Secrets scanned by enterprise pre-commit hook"
     }
   }
 }
 ```
-Or with global opt-in:
-```json
-{
-  "version": 1,
-  "allowDisableSecurity": true,
-  "rules": {
-    "SEC-003": "off"
-  }
-}
-```
-If disabled, Fathom explicitly logs a warning to stderr during analysis.
-
-#### Configuration Precedence:
-```text
-CLI Arguments (e.g. --fail-under 80, --ci, explicit flags)
-       ↓
-.fathom.json Configuration
-       ↓
-.fathomignore Patterns
-       ↓
-Built-in Defaults
-```
 
 ---
-
-## 🏗️ Architecture Intelligence (`--architecture`)
-
-Fathom builds an in-memory structural graph without running any code:
-- **Zero Runtime Execution**: Parses import/export relationships purely via AST text regex scanners; supports ESM, CommonJS, dynamic imports, and Python modules.
-- **Path Alias Resolution**: Automatically resolves module aliases defined in `tsconfig.json` or `jsconfig.json`.
-- **Cycle Detection**: Uses Tarjan's Strongly Connected Components (SCC) algorithm to detect directed import loops (`ARCH-002`).
-- **Boundary Violations (`ARCH-003`)**: Flags suspicious cross-layer imports (e.g., backend importing React components or client importing `fs`/`child_process`).
-- **Deep Coupling (`ARCH-004`) & Monolithic Modules (`ARCH-005`)**: Flags high fan-out files and oversized monolithic units.
-- **Orphan Detection (`ARCH-006`)**: Identifies unreachable source files with confident heuristic filtering.
-
----
-
-## 📦 Dependency Intelligence (`--deps`, `--deps --online`)
-
-Fathom provides deep dependency insights without acting as a package manager or mutating repositories:
-- **Offline-by-Default Safe Analysis (`fathom --deps`)**:
-  - Direct vs transitive dependency counting across multi-package projects.
-  - Multi-lockfile support: npm `package-lock.json` (v1, v2, v3), `yarn.lock` (line-by-line), and `pnpm-lock.yaml`.
-  - Duplicate dependency version detection (`DEP-008`).
-  - Suspicious dependency configurations (`DEP-006`: wildcards, git URLs, duplicate dev/prod declarations).
-  - High-confidence unused dependency detection (`DEP-010`) cross-checked against static import graphs.
-- **Opt-in Online Intelligence (`fathom --deps --online`)**:
-  - Batch queries to OSV API (Open Source Vulnerabilities) (`DEP-007`) with strict 3s timeouts.
-  - Npm registry queries for outdated package detection (`DEP-009`).
-  - Completely silent offline fallback when network is unavailable.
-  - Zero repository code transmission or token leakage.
 
 ## 🔌 Plugin Architecture
 
-Fathom features a stable, sandboxed plugin system enabling developers to extend Fathom with custom rules and analyzers without modifying core engine code:
+Fathom includes a stable, sandboxed plugin system allowing developers to author custom rules and analyzers:
 
-```text
-Fathom Core
-   ↓
-Plugin Registry
-   ├── @fathom/plugin-react (Built-in)
-   ├── @fathom/plugin-docker
-   └── Community Plugins
-```
-
-### Stable Plugin API:
-- `PluginManifest`: Defines package name, semver version, description, author, and declared rules.
-- `PluginRule`: Extends Fathom rules with `recommendation`, `confidence`, `autoFixable`, and reference URLs.
-- `PluginAnalyzer`: Custom analyzer contract (`id`, `name`, `category`, `description`, `analyze(context: PluginContext)`).
-- `PluginContext`: Read-only, sandboxed context enforcing path traversal protections, bounded file reads (1MB limit), and structured finding creation.
-- `PluginRegistry`: Lifecycle manager, schema validator, and error boundary wrapper.
-
-### Example Internal Plugin: `@fathom/plugin-react`
-Built into Fathom as a reference implementation:
-- `REACT-001` (Security / medium): `dangerouslySetInnerHTML` usage without sanitization.
-- `REACT-002` (Quality / low): Array index used as key or missing key in list render.
-- `REACT-003` (Quality / medium): Direct React state mutation (`this.state.x = ...`).
-
-### Enabling Plugins via `.fathom.json`:
 ```json
 {
   "version": 1,
@@ -668,58 +545,85 @@ Built into Fathom as a reference implementation:
 }
 ```
 
----
-
-## 💻 Interactive Developer Dashboard (HTML)
-
-Generate a polished, standalone, interactive single-file dashboard for any repository:
-
-```bash
-fathom --html report.html
-```
-
-Or compare against a baseline and generate an interactive regression report:
-
-```bash
-fathom --compare --html report.html
-```
-
-### Dashboard Features:
-- **100% Self-Contained**: Zero external CDNs, fonts, tracking scripts, or network calls. Opens instantly and safely in any browser offline or in air-gapped CI/CD environments.
-- **12 Comprehensive Sections**:
-  1. **Overall Health Hero**: Health score, color-coded status badge, and repository metadata tags.
-  2. **Category Health Breakdown**: Visual progress bars and weighted contributions for each health dimension.
-  3. **Severity Distribution**: Proportional distribution bar across Critical, High, Medium, Low, and Info findings.
-  4. **Top Actionable Priorities**: Callout cards highlighting high-confidence vulnerabilities and issues requiring immediate attention.
-  5. **Regression & Baseline Banner**: Real-time diff metrics highlighting score regressions and newly introduced findings.
-  6. **Architecture Overview**: Graph metrics, detected layers, and circular dependency cycle warnings.
-  7. **Dependency Summary**: Direct vs transitive counts, duplicate versions, and lockfile status.
-  8. **Testing Maturity**: Test-to-source ratio, detected test directories, and test script presence.
-  9. **Git Hygiene**: Uncommitted working tree state, large binary files, and `.gitignore` status.
-  10. **Documentation Matrix**: Readiness checklist for README, LICENSE, CONTRIBUTING, and SECURITY policy.
-  11. **CI/CD Automation**: GitHub Actions workflow health and automation status.
-  12. **Interactive Finding Explorer**: Real-time text search, severity filter toggles, category dropdown, multi-attribute sorting (severity, rule ID, file, confidence), and collapsible syntax-highlighted code evidence viewers.
-- **Deterministic & XSS-Safe**: HTML output is deterministic byte-for-byte with strict entity escaping.
+### Built-in Example: `@fathom/plugin-react`
+- `REACT-001` (Security / medium): `dangerouslySetInnerHTML` usage without sanitization.
+- `REACT-002` (Quality / low): Array index used as key or missing key in list render.
+- `REACT-003` (Quality / medium): Direct React state mutation (`this.state.x = ...`).
 
 ---
 
-## 🛡️ Security Model
+## 📋 Complete Rules Reference (26 Core Rules + Plugins)
 
-Fathom treats target repositories as **untrusted input**:
-- ❌ Never executes repository code or binaries
-- ❌ Never installs dependencies or runs build commands
-- ❌ Never transmits code or data over the network
-- ❌ Never leaks or logs detected secret values (only filenames and line numbers)
-- ✅ Only performs strictly bounded, read-only file inspections
+| Rule ID | Category | Title | Severity | Description |
+|:---|:---|:---|:---:|:---|
+| `PROJ-001` | Project | Ecosystem detection | `info` | Detects Node.js, Python, Go, Rust, Java, PHP, etc. |
+| `PROJ-002` | Project | Framework detection | `info` | Detects React, Next.js, Vue, Angular, Express, FastAPI, Nuxt, etc. |
+| `PROJ-003` | Project | Package manager detection | `info` | Detects npm, pnpm, yarn, poetry, cargo, etc. |
+| `PROJ-004` | Project | Repository sizing | `info` | Filesystem file counts and repository size heuristics. |
+| `GIT-001` | Git | Git repository initialized | `medium` | Verifies repository is initialized as a Git working tree. |
+| `GIT-002` | Git | `.gitignore` existence | `medium` | Checks for existence of `.gitignore`. |
+| `GIT-003` | Git | Generated directory ignore | `medium` | Confirms `node_modules`, `dist`, `.next`, etc. are ignored. |
+| `GIT-004` | Git | Large file committed | `high` | Flags committed files exceeding 10MB. |
+| `GIT-005` | Git | Uncommitted changes | `info` | Reports uncommitted files in working tree. |
+| `GIT-006` | Git | Empty repository | `low` | Flags repositories with zero commits. |
+| `SEC-001` | Security | `.env` not ignored | `high` | Warns if `.env` files are tracked or unignored. |
+| `SEC-002` | Security | Hardcoded secrets / credentials | `high` | Detects API keys, tokens, and private passwords. |
+| `SEC-003` | Security | Private key files | `critical` | Flags committed `.pem`, `id_rsa`, or private keys. |
+| `SEC-004` | Security | Tracked credential files | `high` | Flags committed `secrets.json`, `.p8`, or keystores. |
+| `SEC-005` | Security | Embedded URL credentials | `high` | Detects usernames and passwords inside connection strings. |
+| `DEP-001` | Dependencies | Manifest detection | `info` | Identifies `package.json`, `Cargo.toml`, `requirements.txt`. |
+| `DEP-002` | Dependencies | Lockfile detection | `info` | Identifies `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`. |
+| `DEP-003` | Dependencies | Missing lockfile | `medium` | Warns when manifest exists without a corresponding lockfile. |
+| `DEP-004` | Dependencies | Manager / lockfile mismatch | `low` | Flags conflicts between detected manager and lockfile type. |
+| `DEP-005` | Dependencies | Total dependency count | `info` | Summarizes declared production and development dependencies. |
+| `DEP-006` | Dependencies | Suspicious dependency config | `medium` | Flags wildcard versions (`*`), raw Git URLs, or duplicates. |
+| `DEP-007` | Dependencies | Known security vulnerabilities | `high` | Flags known CVEs from OSV database (opt-in `--online`). |
+| `DEP-008` | Dependencies | Duplicate dependency versions | `low` | Flags packages installed in multiple conflicting versions. |
+| `DEP-009` | Dependencies | Outdated dependencies | `low` | Identifies major/minor version lag (opt-in `--online`). |
+| `DEP-010` | Dependencies | Unused dependencies | `low` | Flags declared production dependencies unreferenced in code. |
+| `QUAL-001` | Quality | TODO comments | `low` | Counts unresolved TODO comments. |
+| `QUAL-002` | Quality | FIXME comments | `medium` | Counts unresolved FIXME indicators. |
+| `QUAL-003` | Quality | Debug statements | `low` | Flags `console.log`, `debugger`, or print statements in code. |
+| `QUAL-004` | Quality | Empty catch blocks | `medium` | Flags catch blocks that silently swallow exceptions. |
+| `QUAL-005` | Quality | Large source files | `low` | Flags oversized source files exceeding 500 lines. |
+| `QUAL-006` | Quality | Deep directory nesting | `low` | Flags directories nested deeper than 6 levels. |
+| `TEST-001` | Testing | Test directory detection | `low` | Checks for standard test folders (`test`, `tests`, `__tests__`). |
+| `TEST-002` | Testing | Test files detection | `medium` | Identifies test source files (`*.test.ts`, `*.spec.js`). |
+| `TEST-003` | Testing | Test script presence | `medium` | Checks package manifests for configured test scripts. |
+| `TEST-004` | Testing | Test-to-source ratio | `medium` | Evaluates ratio of test files relative to source code. |
+| `DOC-001` | Documentation | README presence | `medium` | Checks for root `README.md`. |
+| `DOC-002` | Documentation | Installation instructions | `low` | Confirms installation section exists in README. |
+| `DOC-003` | Documentation | Usage instructions | `low` | Confirms usage guide exists in README. |
+| `DOC-004` | Documentation | LICENSE presence | `medium` | Checks for open-source or proprietary LICENSE. |
+| `DOC-005` | Documentation | CONTRIBUTING guide | `low` | Checks for `CONTRIBUTING.md`. |
+| `DOC-006` | Documentation | SECURITY policy | `low` | Checks for responsible disclosure `SECURITY.md`. |
+| `DOC-007` | Documentation | Project description | `low` | Validates README contains an informative description. |
+| `CI-001` | CI/CD | Workflow detection | `info` | Detects GitHub Actions, GitLab CI, or CircleCI files. |
+| `CI-002` | CI/CD | CI/CD configuration | `medium` | Checks for active CI/CD automation. |
+| `CI-003` | CI/CD | Automated test step | `medium` | Confirms CI executes automated testing. |
+| `CI-004` | CI/CD | Automated build step | `low` | Confirms CI compiles and validates build artifacts. |
+| `ARCH-001` | Architecture | Architecture observations | `info` | Maps repository directory layout. |
+| `ARCH-002` | Architecture | Circular dependencies | `high` | Flags directed import cycles via Tarjan's SCC algorithm. |
+| `ARCH-003` | Architecture | Boundary violations | `high` | Flags cross-layer violations (e.g. server primitives in UI). |
+| `ARCH-004` | Architecture | Deep fan-out coupling | `low` | Identifies modules importing excessive internal files. |
+| `ARCH-005` | Architecture | Monolithic modules | `low` | Flags giant modules requiring architectural decomposition. |
+| `ARCH-006` | Architecture | Orphaned source files | `info` | Identifies unreachable, unreferenced source files. |
 
 ---
 
-## 🤝 Contributing
+## 🛡️ Security & Privacy Guarantees
 
-Contributions are welcome! Please check out [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to add rules, analyzers, or test fixtures.
+Fathom is built with strict privacy and security invariants:
+- **Local-First**: Never uploads code or telemetry to remote servers.
+- **Read-Only**: Treats target repositories as untrusted input. Never executes repository code, never installs packages, never mutates files.
+- **Credential Protection**: Hardcoded credentials and secrets are detected using entropy and pattern heuristics, but the actual secret values are **never** logged, printed, or exported.
+- **Deterministic**: Given the same repository state, Fathom produces the exact same score and findings every single time.
+- **Safe Network Boundary**: Network requests are strictly opt-in (`--online` for OSV/npm queries, or `--pr-comment` for GitHub review comments).
 
 ---
 
-## 📄 License
+## 🤝 Contributing & License
 
-MIT © [Fathom Contributors](LICENSE)
+We welcome contributions from the community! Check out [CONTRIBUTING.md](CONTRIBUTING.md) to get started with local development, adding custom rules, and writing tests.
+
+Licensed under the **[MIT License](LICENSE)**. © [Fathom Contributors](https://github.com/Ash-Technologia/Fathom).
