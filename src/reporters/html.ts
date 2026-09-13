@@ -5,7 +5,7 @@ import { CATEGORY_LABELS } from '../rules/categories.js';
 import { bandLabel } from '../scoring/score.js';
 
 /**
- * HTML reporter — generates a 100% self-contained developer dashboard.
+ * HTML reporter — generates a 100% self-contained, high-performance developer dashboard.
  * Zero external CDNs, zero fonts, zero tracking, zero network requests.
  */
 export class HtmlReporter {
@@ -47,6 +47,21 @@ function severityColor(severity: string): string {
       return '#94a3b8'; // slate-400
     default:
       return '#64748b';
+  }
+}
+
+function categoryIcon(category: string): string {
+  switch (category) {
+    case 'project': return '📁';
+    case 'git': return '🌿';
+    case 'security': return '🔒';
+    case 'dependencies': return '📦';
+    case 'quality': return '✨';
+    case 'testing': return '🧪';
+    case 'documentation': return '📚';
+    case 'cicd': return '⚙️';
+    case 'architecture': return '🏛️';
+    default: return '📊';
   }
 }
 
@@ -92,10 +107,8 @@ export function generateDashboardHtml(result: AnalysisResult): string {
   }
 
   // Parse architecture layers and warnings
-  let archLayers: Array<{ name: string; components: Array<{ name: string; fileCount: number }> }> =
-    [];
-  let archWarnings: Array<{ type: string; severity: string; message: string; files: string[] }> =
-    [];
+  let archLayers: Array<{ name: string; components: Array<{ name: string; fileCount: number }> }> = [];
+  let archWarnings: Array<{ type: string; severity: string; message: string; files: string[] }> = [];
   if (typeof archMetrics['layers'] === 'string') {
     try {
       archLayers = JSON.parse(archMetrics['layers']) as typeof archLayers;
@@ -110,6 +123,11 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       archWarnings = [];
     }
   }
+
+  // Radial SVG calculation
+  const radius = 76;
+  const circumference = 2 * Math.PI * radius; // ~477.52
+  const strokeDashoffset = circumference - (result.score.overall / 100) * circumference;
 
   // Sanitize findings payload for embedded client-side search & filtering
   const findingsJson = JSON.stringify(
@@ -141,23 +159,27 @@ export function generateDashboardHtml(result: AnalysisResult): string {
   <title>Fathom Dashboard — ${escapeHtml(repoName)}</title>
   <style>
     :root {
-      --bg: #090d16;
-      --card-bg: #0f172a;
-      --card-hover: #162036;
+      --bg: #070b14;
+      --card-bg: rgba(15, 23, 42, 0.75);
+      --card-hover: rgba(30, 41, 59, 0.85);
       --surface: #1e293b;
-      --border: #334155;
-      --border-subtle: #1e293b;
+      --surface-subtle: #0f172a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(56, 189, 248, 0.35);
+      --border-subtle: rgba(255, 255, 255, 0.05);
       --text: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
       --primary: #38bdf8;
       --primary-dim: #0284c7;
+      --primary-glow: rgba(56, 189, 248, 0.25);
       --critical: #dc2626;
       --high: #ef4444;
       --medium: #f59e0b;
       --low: #3b82f6;
       --info: #94a3b8;
       --success: #10b981;
+      --accent-purple: #818cf8;
     }
 
     *, *::before, *::after {
@@ -167,8 +189,10 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
-      background: var(--bg);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: radial-gradient(circle at 50% -10%, rgba(56, 189, 248, 0.12), rgba(7, 11, 20, 0) 50%),
+                  radial-gradient(circle at 90% 10%, rgba(129, 140, 248, 0.08), rgba(7, 11, 20, 0) 40%),
+                  var(--bg);
       color: var(--text);
       min-height: 100vh;
       line-height: 1.5;
@@ -178,15 +202,17 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     a {
       color: var(--primary);
       text-decoration: none;
+      transition: color 0.15s ease;
     }
     a:hover {
       text-decoration: underline;
+      color: #7dd3fc;
     }
 
     .container {
-      max-width: 1200px;
+      max-width: 1240px;
       margin: 0 auto;
-      padding: 2rem 1.5rem 4rem;
+      padding: 2.5rem 1.75rem 5rem;
     }
 
     /* Header */
@@ -195,30 +221,45 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       justify-content: space-between;
       align-items: center;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 1.5rem;
       padding-bottom: 2rem;
-      border-bottom: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border);
       margin-bottom: 2rem;
     }
 
     .brand {
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 1rem;
+    }
+
+    .brand-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #0284c7 0%, #38bdf8 50%, #818cf8 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 4px 20px -2px rgba(56, 189, 248, 0.4);
     }
 
     .brand-logo {
-      font-size: 1.75rem;
+      font-size: 1.85rem;
       font-weight: 900;
       letter-spacing: 0.15em;
-      background: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      background: linear-gradient(135deg, #ffffff 0%, #38bdf8 50%, #a5b4fc 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
+      line-height: 1.1;
     }
 
     .brand-tagline {
       font-size: 0.85rem;
       color: var(--text-dim);
+      margin-top: 0.2rem;
+      letter-spacing: 0.02em;
     }
 
     .meta-badges {
@@ -229,16 +270,73 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     }
 
     .meta-pill {
-      background: var(--card-bg);
+      background: rgba(15, 23, 42, 0.85);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      border-radius: 6px;
-      padding: 0.35rem 0.75rem;
+      border-radius: 8px;
+      padding: 0.4rem 0.85rem;
       font-size: 0.8rem;
       display: inline-flex;
       align-items: center;
-      gap: 0.4rem;
+      gap: 0.45rem;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    /* KPI Summary Strip */
+    .kpi-strip {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .kpi-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.25);
+    }
+    .kpi-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-highlight);
+      box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+    }
+
+    .kpi-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .kpi-val {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1.1;
+      font-feature-settings: "tnum";
+      font-family: ui-monospace, SFMono-Regular, monospace;
+    }
+
+    .kpi-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-top: 0.2rem;
     }
 
     /* Sections */
@@ -251,38 +349,40 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       align-items: center;
       justify-content: space-between;
       margin-bottom: 1.25rem;
-      padding-bottom: 0.5rem;
+      padding-bottom: 0.6rem;
       border-bottom: 1px solid var(--border-subtle);
     }
 
     .section-title {
-      font-size: 1.1rem;
-      font-weight: 700;
+      font-size: 1.15rem;
+      font-weight: 800;
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      color: var(--text-muted);
+      color: var(--text);
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
     }
 
     .section-badge {
       font-size: 0.75rem;
-      padding: 0.2rem 0.5rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
       background: var(--surface);
+      border: 1px solid var(--border);
       border-radius: 9999px;
-      color: var(--text);
+      color: var(--primary);
     }
 
-    /* Top Grid: Health Score + Category Overview */
+    /* Top Grid: Health Score Radial Gauge + Category Overview */
     .hero-grid {
       display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 1.5rem;
+      grid-template-columns: 360px 1fr;
+      gap: 1.75rem;
       margin-bottom: 2rem;
     }
 
-    @media (max-width: 860px) {
+    @media (max-width: 900px) {
       .hero-grid {
         grid-template-columns: 1fr;
       }
@@ -290,9 +390,11 @@ export function generateDashboardHtml(result: AnalysisResult): string {
 
     .score-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 2rem;
+      border-radius: 16px;
+      padding: 2.25rem 1.75rem;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -300,127 +402,215 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       text-align: center;
       position: relative;
       overflow: hidden;
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      transition: all 0.25s ease;
+    }
+    .score-card:hover {
+      border-color: ${overallColor}55;
+      box-shadow: 0 12px 40px -4px ${overallColor}22, inset 0 1px 0 rgba(255, 255, 255, 0.1);
     }
 
     .score-glow {
       position: absolute;
-      width: 140px;
-      height: 140px;
+      width: 180px;
+      height: 180px;
       border-radius: 50%;
-      background: ${overallColor}22;
-      filter: blur(40px);
+      background: ${overallColor}18;
+      filter: blur(50px);
       z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Radial SVG gauge */
+    .radial-gauge-container {
+      position: relative;
+      width: 190px;
+      height: 190px;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1;
+    }
+
+    .radial-gauge-svg {
+      transform: rotate(-90deg);
+      overflow: visible;
+    }
+
+    .radial-track {
+      fill: none;
+      stroke: rgba(255, 255, 255, 0.06);
+      stroke-width: 14;
+    }
+
+    .radial-progress {
+      fill: none;
+      stroke: ${overallColor};
+      stroke-width: 14;
+      stroke-linecap: round;
+      stroke-dasharray: ${circumference};
+      stroke-dashoffset: ${strokeDashoffset};
+      filter: drop-shadow(0 0 10px ${overallColor}77);
+      transition: stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .radial-center-content {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
     }
 
     .score-number {
-      font-size: 5.5rem;
+      font-size: 4.2rem;
       font-weight: 900;
       line-height: 1;
-      color: ${overallColor};
-      z-index: 1;
+      color: #ffffff;
       font-feature-settings: "tnum";
+      letter-spacing: -0.04em;
+      text-shadow: 0 0 24px ${overallColor}55;
     }
 
     .score-denom {
-      font-size: 1.1rem;
+      font-size: 0.95rem;
+      font-weight: 600;
       color: var(--text-dim);
-      margin-top: 0.25rem;
-      z-index: 1;
+      margin-top: -0.2rem;
     }
 
     .score-band-badge {
-      margin-top: 1rem;
-      padding: 0.4rem 1.25rem;
-      background: ${overallColor}18;
-      border: 1px solid ${overallColor}55;
+      margin-top: 0.75rem;
+      padding: 0.45rem 1.4rem;
+      background: ${overallColor}15;
+      border: 1px solid ${overallColor}66;
       color: ${overallColor};
       border-radius: 9999px;
       font-size: 0.9rem;
-      font-weight: 700;
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
+      letter-spacing: 0.08em;
       z-index: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      box-shadow: 0 2px 12px ${overallColor}22;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: ${overallColor};
+      box-shadow: 0 0 8px ${overallColor};
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
     }
 
     .score-subtext {
-      margin-top: 0.85rem;
-      font-size: 0.8rem;
+      margin-top: 0.75rem;
+      font-size: 0.85rem;
       color: var(--text-dim);
       z-index: 1;
     }
 
+    /* Categories Card */
     .categories-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.75rem;
+      border-radius: 16px;
+      padding: 1.85rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     }
 
     .cat-table {
       width: 100%;
       display: flex;
       flex-direction: column;
-      gap: 0.8rem;
+      gap: 0.85rem;
     }
 
     .cat-row {
       display: grid;
-      grid-template-columns: 140px 1fr 45px 60px;
+      grid-template-columns: 170px 1fr 50px 75px;
       align-items: center;
-      gap: 1rem;
-      font-size: 0.9rem;
+      gap: 1.25rem;
+      font-size: 0.92rem;
+      padding: 0.35rem 0.5rem;
+      border-radius: 8px;
+      transition: background 0.15s ease;
+    }
+    .cat-row:hover {
+      background: rgba(255, 255, 255, 0.03);
     }
 
     .cat-name {
       color: var(--text);
-      font-weight: 500;
+      font-weight: 600;
       white-space: nowrap;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .progress-track {
-      background: var(--surface);
-      height: 8px;
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.06);
+      height: 9px;
+      border-radius: 9999px;
       overflow: hidden;
+      position: relative;
     }
 
     .progress-bar {
       height: 100%;
-      border-radius: 4px;
-      transition: width 0.3s ease;
+      border-radius: 9999px;
+      transition: width 0.4s ease;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
     }
 
     .cat-val {
       text-align: right;
-      font-weight: 700;
+      font-weight: 800;
       font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     .cat-findings-count {
       text-align: right;
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--text-dim);
+      font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     /* Severity Distribution Bar */
     .distribution-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: 16px;
+      padding: 1.75rem;
       margin-bottom: 2rem;
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.3);
     }
 
     .dist-bar {
       display: flex;
-      height: 14px;
-      border-radius: 7px;
+      height: 16px;
+      border-radius: 8px;
       overflow: hidden;
       margin-bottom: 1.25rem;
-      background: var(--surface);
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.04);
     }
 
     .dist-segment {
@@ -431,25 +621,33 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     .dist-legend {
       display: flex;
       flex-wrap: wrap;
-      gap: 1.5rem;
+      gap: 1.75rem;
     }
 
     .legend-item {
       display: flex;
       align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
+      gap: 0.6rem;
+      font-size: 0.88rem;
       color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.25rem 0.5rem;
+      border-radius: 6px;
+      transition: background 0.15s ease;
+    }
+    .legend-item:hover {
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .legend-dot {
       width: 10px;
       height: 10px;
       border-radius: 50%;
+      box-shadow: 0 0 8px currentColor;
     }
 
     .legend-count {
-      font-weight: 700;
+      font-weight: 800;
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, monospace;
     }
@@ -457,62 +655,80 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     /* Top Priorities */
     .top-priorities-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.25rem;
     }
 
     .priority-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border-left: 4px solid var(--border);
-      border-radius: 8px;
-      padding: 1.25rem;
+      border-radius: 12px;
+      padding: 1.5rem;
       border-top: 1px solid var(--border);
       border-right: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+    }
+    .priority-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-highlight);
+      box-shadow: 0 8px 30px -4px rgba(0, 0, 0, 0.4);
     }
 
     .priority-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.75rem;
     }
 
     .priority-rule {
-      font-size: 0.75rem;
-      font-weight: 700;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
-      background: var(--surface);
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
       font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     .priority-loc {
-      font-size: 0.75rem;
-      color: var(--text-dim);
+      font-size: 0.8rem;
+      color: var(--primary);
       font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     .priority-title {
-      font-weight: 600;
-      font-size: 0.95rem;
+      font-weight: 700;
+      font-size: 1.02rem;
       color: var(--text);
-      margin-bottom: 0.5rem;
+      margin-bottom: 0.6rem;
+      line-height: 1.35;
     }
 
     .priority-rec {
-      font-size: 0.85rem;
-      color: var(--primary);
-      line-height: 1.4;
+      font-size: 0.88rem;
+      color: #7dd3fc;
+      line-height: 1.45;
+      background: rgba(2, 132, 199, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
     }
 
     /* Comparison / Regressions */
     .comparison-banner {
-      border-radius: 12px;
-      padding: 1.5rem;
+      border-radius: 16px;
+      padding: 1.75rem;
       margin-bottom: 2rem;
       border: 1px solid var(--border);
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.3);
     }
 
     .comp-header {
@@ -521,52 +737,59 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       align-items: center;
       flex-wrap: wrap;
       gap: 1rem;
-      margin-bottom: 1.25rem;
+      margin-bottom: 1.5rem;
     }
 
     .comp-badge {
-      padding: 0.4rem 1rem;
-      border-radius: 6px;
-      font-size: 0.85rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
       font-weight: 800;
-      letter-spacing: 0.05em;
+      letter-spacing: 0.06em;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     .badge-regression {
-      background: #7f1d1d;
+      background: rgba(220, 38, 38, 0.15);
       color: #fca5a5;
       border: 1px solid #ef4444;
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.2);
     }
 
     .badge-clean {
-      background: #064e3b;
+      background: rgba(16, 185, 129, 0.15);
       color: #6ee7b7;
       border: 1px solid #10b981;
+      box-shadow: 0 0 16px rgba(16, 185, 129, 0.2);
     }
 
     .comp-metrics {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 1.25rem;
     }
 
     .comp-metric-box {
-      background: var(--bg);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 1rem;
+      background: rgba(7, 11, 20, 0.65);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.15rem;
       text-align: center;
     }
 
     .comp-metric-label {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--text-dim);
-      margin-bottom: 0.25rem;
+      margin-bottom: 0.35rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
     }
 
     .comp-metric-val {
-      font-size: 1.5rem;
-      font-weight: 800;
+      font-size: 1.75rem;
+      font-weight: 900;
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, monospace;
     }
@@ -574,37 +797,48 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     /* Subsystem Metric Cards Grid */
     .subsystems-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 2rem;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
     }
 
     .subsystem-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1.25rem;
+      border-radius: 14px;
+      padding: 1.5rem;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.25);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .subsystem-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-highlight);
+      box-shadow: 0 8px 28px -4px rgba(0, 0, 0, 0.4);
     }
 
     .subsystem-title {
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 1rem;
+      font-size: 1rem;
+      font-weight: 800;
+      color: var(--text);
+      margin-bottom: 1.25rem;
       display: flex;
       align-items: center;
-      gap: 0.5rem;
+      gap: 0.6rem;
+      padding-bottom: 0.6rem;
+      border-bottom: 1px solid var(--border-subtle);
     }
 
     .subsystem-list {
       list-style: none;
-      font-size: 0.85rem;
+      font-size: 0.9rem;
       display: flex;
       flex-direction: column;
-      gap: 0.5rem;
+      gap: 0.75rem;
     }
 
     .subsystem-item {
@@ -615,123 +849,105 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     }
 
     .subsystem-item-val {
-      font-weight: 600;
+      font-weight: 700;
       color: var(--text);
       font-family: ui-monospace, SFMono-Regular, monospace;
-    }
-
-    /* Architecture Specific */
-    .arch-layers-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1rem;
-      margin-top: 1rem;
-    }
-
-    .arch-layer-box {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 1rem;
-    }
-
-    .arch-layer-name {
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: var(--primary);
-      margin-bottom: 0.5rem;
-    }
-
-    .arch-components {
-      list-style: none;
-      font-size: 0.8rem;
-      color: var(--text-muted);
-    }
-
-    .arch-components li {
-      margin-bottom: 0.25rem;
     }
 
     /* Finding Explorer */
     .explorer-card {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 1.75rem;
+      border-radius: 16px;
+      padding: 2rem;
+      box-shadow: 0 8px 32px -4px rgba(0, 0, 0, 0.4);
     }
 
     .explorer-toolbar {
       display: flex;
       flex-wrap: wrap;
-      gap: 1rem;
+      gap: 1.25rem;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.75rem;
+      background: rgba(7, 11, 20, 0.5);
+      padding: 1rem 1.25rem;
+      border-radius: 12px;
+      border: 1px solid var(--border);
     }
 
     .search-box {
       flex: 1;
-      min-width: 240px;
+      min-width: 260px;
       position: relative;
     }
 
     .search-input {
       width: 100%;
-      background: var(--bg);
+      background: rgba(15, 23, 42, 0.9);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.6rem 1rem 0.6rem 2.25rem;
-      font-size: 0.9rem;
+      border-radius: 10px;
+      padding: 0.7rem 1rem 0.7rem 2.4rem;
+      font-size: 0.92rem;
       color: var(--text);
       outline: none;
+      transition: all 0.2s ease;
     }
     .search-input:focus {
       border-color: var(--primary);
+      box-shadow: 0 0 14px var(--primary-glow);
     }
 
     .search-icon {
       position: absolute;
-      left: 0.8rem;
+      left: 0.85rem;
       top: 50%;
       transform: translateY(-50%);
       color: var(--text-dim);
-      font-size: 0.85rem;
+      font-size: 0.95rem;
+      pointer-events: none;
     }
 
     .filter-controls {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.75rem;
+      gap: 0.85rem;
       align-items: center;
     }
 
     .select-control {
-      background: var(--bg);
+      background: rgba(15, 23, 42, 0.9);
       border: 1px solid var(--border);
       color: var(--text);
-      border-radius: 8px;
-      padding: 0.6rem 0.85rem;
-      font-size: 0.85rem;
+      border-radius: 10px;
+      padding: 0.65rem 1rem;
+      font-size: 0.88rem;
       outline: none;
       cursor: pointer;
+      transition: border-color 0.15s ease;
+    }
+    .select-control:focus {
+      border-color: var(--primary);
     }
 
     .pills-group {
       display: flex;
       flex-wrap: wrap;
-      gap: 0.35rem;
+      gap: 0.4rem;
     }
 
     .pill-btn {
-      background: var(--bg);
+      background: rgba(15, 23, 42, 0.9);
       border: 1px solid var(--border);
       color: var(--text-muted);
-      border-radius: 6px;
-      padding: 0.4rem 0.75rem;
-      font-size: 0.8rem;
+      border-radius: 8px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.82rem;
       cursor: pointer;
-      font-weight: 500;
-      transition: all 0.15s ease;
+      font-weight: 600;
+      transition: all 0.2s ease;
     }
     .pill-btn:hover {
       background: var(--surface);
@@ -741,23 +957,25 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       background: var(--primary-dim);
       border-color: var(--primary);
       color: #ffffff;
+      box-shadow: 0 0 12px var(--primary-glow);
     }
 
     .findings-container {
       display: flex;
       flex-direction: column;
-      gap: 0.75rem;
+      gap: 1rem;
     }
 
     .finding-item {
-      background: var(--bg);
-      border: 1px solid var(--border-subtle);
-      border-radius: 8px;
-      padding: 1.25rem;
-      transition: border-color 0.15s ease;
+      background: rgba(7, 11, 20, 0.55);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem 1.6rem;
+      transition: all 0.2s ease;
     }
     .finding-item:hover {
-      border-color: var(--border);
+      border-color: var(--border-highlight);
+      background: rgba(15, 23, 42, 0.45);
     }
 
     .finding-meta-row {
@@ -765,135 +983,150 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       align-items: center;
       justify-content: space-between;
       flex-wrap: wrap;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
+      gap: 0.6rem;
+      margin-bottom: 0.6rem;
     }
 
     .badge-severity {
-      font-size: 0.7rem;
+      font-size: 0.72rem;
       font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.06em;
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
+      letter-spacing: 0.08em;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
     }
 
     .badge-rule {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       font-family: ui-monospace, SFMono-Regular, monospace;
       color: var(--text-muted);
-      background: var(--surface);
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
     }
 
     .badge-category {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--text-dim);
-      background: var(--surface);
-      padding: 0.2rem 0.5rem;
-      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.03);
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
     }
 
     .badge-loc {
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       font-family: ui-monospace, SFMono-Regular, monospace;
       color: var(--primary);
     }
 
     .finding-main-title {
-      font-size: 1rem;
-      font-weight: 600;
+      font-size: 1.05rem;
+      font-weight: 700;
       color: var(--text);
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.45rem;
+      line-height: 1.4;
     }
 
     .finding-main-desc {
-      font-size: 0.875rem;
+      font-size: 0.9rem;
       color: var(--text-muted);
-      margin-bottom: 0.75rem;
-      line-height: 1.5;
+      margin-bottom: 0.85rem;
+      line-height: 1.55;
     }
 
     .details-box {
-      margin-top: 0.75rem;
-      padding-top: 0.75rem;
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
       border-top: 1px dashed var(--border);
     }
 
     .rec-box {
       display: flex;
-      gap: 0.5rem;
-      font-size: 0.85rem;
+      gap: 0.65rem;
+      font-size: 0.88rem;
       color: #67e8f9;
-      background: #083344;
-      padding: 0.6rem 0.85rem;
-      border-radius: 6px;
-      margin-bottom: 0.5rem;
+      background: rgba(8, 51, 68, 0.4);
+      border: 1px solid rgba(6, 182, 212, 0.25);
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      margin-bottom: 0.65rem;
+      line-height: 1.45;
     }
 
     .evidence-block {
-      background: #030712;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 0.75rem;
+      background: #020617;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 0.85rem 1rem;
       font-family: ui-monospace, SFMono-Regular, monospace;
-      font-size: 0.8rem;
+      font-size: 0.82rem;
       color: #e2e8f0;
       overflow-x: auto;
-      margin-top: 0.5rem;
+      margin-top: 0.65rem;
+      line-height: 1.5;
     }
 
     .ref-links {
-      margin-top: 0.5rem;
-      font-size: 0.8rem;
+      margin-top: 0.65rem;
+      font-size: 0.82rem;
       color: var(--text-dim);
     }
 
     .no-results {
       text-align: center;
-      padding: 3rem;
+      padding: 4rem 2rem;
       color: var(--text-dim);
-      font-size: 0.95rem;
+      font-size: 1rem;
     }
 
     /* Analyzer Status Grid */
     .analyzer-status-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.85rem;
     }
 
     .analyzer-pill {
       background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 0.75rem 1rem;
+      border-radius: 10px;
+      padding: 0.85rem 1.15rem;
       display: flex;
       align-items: center;
-      gap: 0.75rem;
+      gap: 0.85rem;
+      transition: all 0.2s ease;
+    }
+    .analyzer-pill:hover {
+      border-color: var(--border-highlight);
     }
 
     .analyzer-status-icon {
-      font-size: 1.1rem;
+      font-size: 1.15rem;
     }
 
     .analyzer-info-name {
-      font-size: 0.85rem;
-      font-weight: 600;
+      font-size: 0.9rem;
+      font-weight: 700;
       color: var(--text);
     }
 
     .analyzer-info-dur {
-      font-size: 0.75rem;
+      font-size: 0.78rem;
       color: var(--text-dim);
+      font-family: ui-monospace, SFMono-Regular, monospace;
     }
 
     footer {
       text-align: center;
-      padding: 3rem 0 1rem;
+      padding: 3.5rem 0 1.5rem;
       color: var(--text-dim);
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       border-top: 1px solid var(--border-subtle);
     }
   </style>
@@ -904,6 +1137,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
   <!-- Header -->
   <header>
     <div class="brand">
+      <div class="brand-icon">⚡</div>
       <div>
         <div class="brand-logo">FATHOM</div>
         <div class="brand-tagline">Repository Intelligence &amp; Architectural Deep Dive</div>
@@ -916,6 +1150,38 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       <span class="meta-pill">v${escapeHtml(result.fathomVersion)}</span>
     </div>
   </header>
+
+  <!-- KPI Quick Stats Ribbon -->
+  <div class="kpi-strip">
+    <div class="kpi-card">
+      <div class="kpi-icon">🎯</div>
+      <div>
+        <div class="kpi-val" style="color:${overallColor};">${result.score.overall}%</div>
+        <div class="kpi-label">Health Score</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🔍</div>
+      <div>
+        <div class="kpi-val">${totalFindings}</div>
+        <div class="kpi-label">Total Findings</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">🚨</div>
+      <div>
+        <div class="kpi-val" style="color:${criticalAndHigh.length > 0 ? 'var(--high)' : 'var(--success)'};">${criticalAndHigh.length}</div>
+        <div class="kpi-label">Urgent Issues</div>
+      </div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-icon">⚡</div>
+      <div>
+        <div class="kpi-val">${result.durationMs}ms</div>
+        <div class="kpi-label">Execution Time</div>
+      </div>
+    </div>
+  </div>
 
   <!-- Section 5: Comparison / Regression Banner (if exists) -->
   ${
@@ -964,13 +1230,24 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       : ''
   }
 
-  <!-- Section 1 & 2: Health Hero & Category Scores -->
+  <!-- Section 1 & 2: Health Hero Radial Gauge & Category Scores -->
   <div class="hero-grid">
     <section class="score-card" id="section-overall-score">
       <div class="score-glow"></div>
-      <div class="score-number">${result.score.overall}</div>
-      <div class="score-denom">/ 100</div>
-      <div class="score-band-badge">${escapeHtml(bandLabel(result.score.band))}</div>
+      <div class="radial-gauge-container">
+        <svg class="radial-gauge-svg" width="180" height="180" viewBox="0 0 180 180">
+          <circle class="radial-track" cx="90" cy="90" r="${radius}"></circle>
+          <circle class="radial-progress" cx="90" cy="90" r="${radius}"></circle>
+        </svg>
+        <div class="radial-center-content">
+          <div class="score-number">${result.score.overall}</div>
+          <div class="score-denom">/ 100</div>
+        </div>
+      </div>
+      <div class="score-band-badge">
+        <span class="pulse-dot"></span>
+        ${escapeHtml(bandLabel(result.score.band))}
+      </div>
       <div class="score-subtext">Overall Repository Health</div>
     </section>
 
@@ -981,11 +1258,12 @@ export function generateDashboardHtml(result: AnalysisResult): string {
           .map((cs) => {
             const label = CATEGORY_LABELS[cs.category] ?? cs.category;
             const col = scoreColor(cs.score);
+            const icon = categoryIcon(cs.category);
             return `
             <div class="cat-row">
-              <span class="cat-name">${escapeHtml(label)}</span>
+              <span class="cat-name"><span>${icon}</span> ${escapeHtml(label)}</span>
               <div class="progress-track">
-                <div class="progress-bar" style="width:${cs.score}%; background:${col};"></div>
+                <div class="progress-bar" style="width:${cs.score}%; background:linear-gradient(90deg, ${col}66, ${col});"></div>
               </div>
               <span class="cat-val" style="color:${col}">${cs.score}</span>
               <span class="cat-findings-count">${cs.findingCount} issue${cs.findingCount === 1 ? '' : 's'}</span>
@@ -998,7 +1276,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
 
   <!-- Section 3: Severity Distribution -->
   <section class="distribution-card" id="section-severity-distribution">
-    <div class="section-title" style="margin-bottom: 1rem;">Finding Severity Distribution (${totalFindings} total)</div>
+    <div class="section-title" style="margin-bottom: 1.25rem;">Finding Severity Distribution (${totalFindings} total)</div>
     <div class="dist-bar">
       ${
         totalFindings > 0
@@ -1013,11 +1291,11 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       }
     </div>
     <div class="dist-legend">
-      <div class="legend-item"><span class="legend-dot" style="background:var(--critical);"></span>Critical: <span class="legend-count">${severityCounts.critical}</span></div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--high);"></span>High: <span class="legend-count">${severityCounts.high}</span></div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--medium);"></span>Medium: <span class="legend-count">${severityCounts.medium}</span></div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--low);"></span>Low: <span class="legend-count">${severityCounts.low}</span></div>
-      <div class="legend-item"><span class="legend-dot" style="background:var(--info);"></span>Info: <span class="legend-count">${severityCounts.info}</span></div>
+      <div class="legend-item" data-sev="critical"><span class="legend-dot" style="background:var(--critical);color:var(--critical);"></span>Critical: <span class="legend-count">${severityCounts.critical}</span></div>
+      <div class="legend-item" data-sev="high"><span class="legend-dot" style="background:var(--high);color:var(--high);"></span>High: <span class="legend-count">${severityCounts.high}</span></div>
+      <div class="legend-item" data-sev="medium"><span class="legend-dot" style="background:var(--medium);color:var(--medium);"></span>Medium: <span class="legend-count">${severityCounts.medium}</span></div>
+      <div class="legend-item" data-sev="low"><span class="legend-dot" style="background:var(--low);color:var(--low);"></span>Low: <span class="legend-count">${severityCounts.low}</span></div>
+      <div class="legend-item" data-sev="info"><span class="legend-dot" style="background:var(--info);color:var(--info);"></span>Info: <span class="legend-count">${severityCounts.info}</span></div>
     </div>
   </section>
 
@@ -1030,8 +1308,8 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     ${
       criticalAndHigh.length === 0
         ? `
-      <div style="background: var(--card-bg); border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; text-align: center; color: var(--success);">
-        ✓ No critical or high severity issues detected in this repository!
+      <div style="background: var(--card-bg); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 12px; padding: 2rem; text-align: center; color: var(--success); font-weight: 600; font-size: 1rem;">
+        ✓ Excellent work! No critical or high severity issues detected in this repository.
       </div>`
         : `
       <div class="top-priorities-grid">
@@ -1045,7 +1323,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
               ${f.location?.file ? `<span class="priority-loc">${escapeHtml(f.location.file)}${f.location.line ? ':' + String(f.location.line) : ''}</span>` : ''}
             </div>
             <div class="priority-title">${escapeHtml(f.title)}</div>
-            <div class="priority-rec">→ ${escapeHtml(f.recommendation)}</div>
+            <div class="priority-rec">💡 ${escapeHtml(f.recommendation)}</div>
           </div>`,
           )
           .join('')}
@@ -1059,7 +1337,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     <!-- Section 6: Architecture Overview -->
     <section class="subsystem-card" id="section-architecture">
       <div>
-        <h3 class="subsystem-title">🏗️ Architecture</h3>
+        <h3 class="subsystem-title">🏛️ Architecture</h3>
         <ul class="subsystem-list">
           <li class="subsystem-item"><span>Graph Nodes</span><span class="subsystem-item-val">${escapeHtml(String(archMetrics['nodeCount'] ?? 0))}</span></li>
           <li class="subsystem-item"><span>Import Edges</span><span class="subsystem-item-val">${escapeHtml(String(archMetrics['edgeCount'] ?? 0))}</span></li>
@@ -1070,7 +1348,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       ${
         archWarnings.length > 0
           ? `
-        <div style="margin-top: 0.75rem; font-size: 0.75rem; color: var(--high);">
+        <div style="margin-top: 1rem; font-size: 0.8rem; color: var(--high); background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); padding: 0.5rem 0.75rem; border-radius: 8px;">
           ⚠️ ${archWarnings.length} architectural warning(s) detected
         </div>`
           : ''
@@ -1098,7 +1376,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
           <li class="subsystem-item"><span>Test Files</span><span class="subsystem-item-val">${escapeHtml(String(testMetrics['testFiles'] ?? 0))}</span></li>
           <li class="subsystem-item"><span>Source Files</span><span class="subsystem-item-val">${escapeHtml(String(testMetrics['sourceFiles'] ?? 0))}</span></li>
           <li class="subsystem-item"><span>Test-to-Source Ratio</span><span class="subsystem-item-val">${escapeHtml(String(Math.round(Number(testMetrics['testToSourceRatio'] ?? 0) * 100)))}%</span></li>
-          <li class="subsystem-item"><span>Test Script in Manifest</span><span class="subsystem-item-val">${testMetrics['hasTestScript'] ? '✓ Yes' : '✗ No'}</span></li>
+          <li class="subsystem-item"><span>Test Script in Manifest</span><span class="subsystem-item-val" style="color: ${testMetrics['hasTestScript'] ? 'var(--success)' : 'var(--text-dim)'}">${testMetrics['hasTestScript'] ? '✓ Yes' : '✗ No'}</span></li>
         </ul>
       </div>
     </section>
@@ -1106,10 +1384,10 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     <!-- Section 9: Git Hygiene -->
     <section class="subsystem-card" id="section-git-hygiene">
       <div>
-        <h3 class="subsystem-title">🌱 Git Hygiene</h3>
+        <h3 class="subsystem-title">🌿 Git Hygiene</h3>
         <ul class="subsystem-list">
-          <li class="subsystem-item"><span>Git Repository</span><span class="subsystem-item-val">${result.repository.git.isRepo ? '✓ Initialized' : '✗ No'}</span></li>
-          <li class="subsystem-item"><span>.gitignore Present</span><span class="subsystem-item-val">${result.repository.git.hasGitignore ? '✓ Yes' : '✗ Missing'}</span></li>
+          <li class="subsystem-item"><span>Git Repository</span><span class="subsystem-item-val" style="color:${result.repository.git.isRepo ? 'var(--success)' : 'var(--high)'}">${result.repository.git.isRepo ? '✓ Initialized' : '✗ No'}</span></li>
+          <li class="subsystem-item"><span>.gitignore Present</span><span class="subsystem-item-val" style="color:${result.repository.git.hasGitignore ? 'var(--success)' : 'var(--high)'}">${result.repository.git.hasGitignore ? '✓ Yes' : '✗ Missing'}</span></li>
           <li class="subsystem-item"><span>Uncommitted Changes</span><span class="subsystem-item-val">${gitMetrics['uncommittedChanges'] ? 'Pending' : 'Clean'}</span></li>
           <li class="subsystem-item"><span>Large Files (>10MB)</span><span class="subsystem-item-val">${escapeHtml(String(gitMetrics['largeFilesCount'] ?? 0))}</span></li>
         </ul>
@@ -1121,10 +1399,10 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       <div>
         <h3 class="subsystem-title">📚 Documentation</h3>
         <ul class="subsystem-list">
-          <li class="subsystem-item"><span>README</span><span class="subsystem-item-val">${docMetrics['hasReadme'] ? '✓ Present' : '✗ Missing'}</span></li>
-          <li class="subsystem-item"><span>LICENSE</span><span class="subsystem-item-val">${docMetrics['hasLicense'] ? '✓ Present' : '✗ Missing'}</span></li>
-          <li class="subsystem-item"><span>CONTRIBUTING</span><span class="subsystem-item-val">${docMetrics['hasContributing'] ? '✓ Present' : '✗ Missing'}</span></li>
-          <li class="subsystem-item"><span>SECURITY Policy</span><span class="subsystem-item-val">${docMetrics['hasSecurityPolicy'] ? '✓ Present' : '✗ Missing'}</span></li>
+          <li class="subsystem-item"><span>README</span><span class="subsystem-item-val" style="color:${docMetrics['hasReadme'] ? 'var(--success)' : 'var(--high)'}">${docMetrics['hasReadme'] ? '✓ Present' : '✗ Missing'}</span></li>
+          <li class="subsystem-item"><span>LICENSE</span><span class="subsystem-item-val" style="color:${docMetrics['hasLicense'] ? 'var(--success)' : 'var(--medium)'}">${docMetrics['hasLicense'] ? '✓ Present' : '✗ Missing'}</span></li>
+          <li class="subsystem-item"><span>CONTRIBUTING</span><span class="subsystem-item-val" style="color:${docMetrics['hasContributing'] ? 'var(--success)' : 'var(--text-dim)'}">${docMetrics['hasContributing'] ? '✓ Present' : '✗ Missing'}</span></li>
+          <li class="subsystem-item"><span>SECURITY Policy</span><span class="subsystem-item-val" style="color:${docMetrics['hasSecurityPolicy'] ? 'var(--success)' : 'var(--text-dim)'}">${docMetrics['hasSecurityPolicy'] ? '✓ Present' : '✗ Missing'}</span></li>
         </ul>
       </div>
     </section>
@@ -1132,12 +1410,12 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     <!-- Section 11: CI/CD -->
     <section class="subsystem-card" id="section-cicd">
       <div>
-        <h3 class="subsystem-title">🚀 CI / CD</h3>
+        <h3 class="subsystem-title">⚙️ CI / CD</h3>
         <ul class="subsystem-list">
-          <li class="subsystem-item"><span>CI Configuration</span><span class="subsystem-item-val">${cicdMetrics['hasCIConfig'] ? '✓ Present' : '✗ None'}</span></li>
-          <li class="subsystem-item"><span>GitHub Actions</span><span class="subsystem-item-val">${cicdMetrics['hasGitHubActions'] ? '✓ Active' : '✗ None'}</span></li>
+          <li class="subsystem-item"><span>CI Configuration</span><span class="subsystem-item-val" style="color:${cicdMetrics['hasCIConfig'] ? 'var(--success)' : 'var(--text-dim)'}">${cicdMetrics['hasCIConfig'] ? '✓ Present' : '✗ None'}</span></li>
+          <li class="subsystem-item"><span>GitHub Actions</span><span class="subsystem-item-val" style="color:${cicdMetrics['hasGitHubActions'] ? 'var(--success)' : 'var(--text-dim)'}">${cicdMetrics['hasGitHubActions'] ? '✓ Active' : '✗ None'}</span></li>
           <li class="subsystem-item"><span>Workflows Detected</span><span class="subsystem-item-val">${escapeHtml(String(cicdMetrics['ciWorkflowCount'] ?? 0))}</span></li>
-          <li class="subsystem-item"><span>Automated Test Run</span><span class="subsystem-item-val">${cicdMetrics['hasTestStep'] ? '✓ Yes' : '—'}</span></li>
+          <li class="subsystem-item"><span>Automated Test Run</span><span class="subsystem-item-val" style="color:${cicdMetrics['hasTestStep'] ? 'var(--success)' : 'var(--text-dim)'}">${cicdMetrics['hasTestStep'] ? '✓ Yes' : '—'}</span></li>
         </ul>
       </div>
     </section>
@@ -1146,7 +1424,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
 
   <!-- Section 12: Finding Explorer -->
   <section class="explorer-card" id="section-finding-explorer">
-    <div class="section-header" style="border: none; margin-bottom: 1rem;">
+    <div class="section-header" style="border: none; margin-bottom: 1.25rem;">
       <h2 class="section-title">🔍 Finding Explorer</h2>
       <span class="section-badge" id="results-counter">${findings.length} findings</span>
     </div>
@@ -1155,7 +1433,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
     <div class="explorer-toolbar">
       <div class="search-box">
         <span class="search-icon">🔎</span>
-        <input type="text" id="filter-search" class="search-input" placeholder="Search by rule, title, description, path..." aria-label="Search findings" />
+        <input type="text" id="filter-search" class="search-input" placeholder="Search by rule, title, description, path (Press / to focus)..." aria-label="Search findings" />
       </div>
 
       <div class="filter-controls">
@@ -1198,8 +1476,8 @@ export function generateDashboardHtml(result: AnalysisResult): string {
   </section>
 
   <!-- Analyzer Execution Breakdown -->
-  <section class="section" style="margin-top: 2.5rem;">
-    <div class="section-title">Analyzers &amp; Execution Timers</div>
+  <section class="section" style="margin-top: 3rem;">
+    <div class="section-title" style="margin-bottom: 1.25rem;">⚡ Analyzers &amp; Execution Timers</div>
     <div class="analyzer-status-grid">
       ${result.analyzers
         .map(
@@ -1217,7 +1495,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
   </section>
 
   <footer>
-    Fathom v${escapeHtml(result.fathomVersion)} · Completely Offline &amp; Self-Contained · Zero Telemetry
+    Fathom v${escapeHtml(result.fathomVersion)} · 100% Offline &amp; Self-Contained · Zero Telemetry
   </footer>
 
 </div>
@@ -1321,7 +1599,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       html += '<div class="finding-item" style="border-left: 4px solid ' + color + ';">';
       html += '  <div class="finding-meta-row">';
       html += '    <div style="display:flex;gap:0.5rem;align-items:center;">';
-      html += '      <span class="badge-severity" style="background:' + color + '22;color:' + color + ';">' + escapeText(f.severity) + '</span>';
+      html += '      <span class="badge-severity" style="background:' + color + '22;color:' + color + ';border:1px solid ' + color + '44;">' + escapeText(f.severity) + '</span>';
       html += '      <span class="badge-rule">' + escapeText(f.ruleId) + '</span>';
       html += '      <span class="badge-category">' + escapeText(f.categoryLabel) + '</span>';
       html += '    </div>';
@@ -1332,7 +1610,7 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       html += '  <div class="finding-main-title">' + escapeText(f.title) + '</div>';
       html += '  <div class="finding-main-desc">' + escapeText(f.description) + '</div>';
       html += '  <details class="details-box">';
-      html += '    <summary style="cursor:pointer;font-size:0.8rem;color:var(--text-dim);margin-bottom:0.5rem;">View Recommendation &amp; Evidence</summary>';
+      html += '    <summary style="cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--text-dim);margin-bottom:0.6rem;user-select:none;">▾ View Recommendation &amp; Evidence</summary>';
       if (f.recommendation) {
         html += '    <div class="rec-box">💡 <span>' + escapeText(f.recommendation) + '</span></div>';
       }
@@ -1365,6 +1643,32 @@ export function generateDashboardHtml(result: AnalysisResult): string {
       activeSeverity = btn.getAttribute('data-severity');
       render();
     });
+  });
+
+  // Clicking legend chips also filters
+  document.querySelectorAll('.dist-legend .legend-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      const sev = item.getAttribute('data-sev');
+      if (sev) {
+        severityPills.forEach(function(b) {
+          if (b.getAttribute('data-severity') === sev) {
+            b.click();
+          }
+        });
+      }
+    });
+  });
+
+  // Keyboard shortcut: Press "/" to search, Escape to clear
+  document.addEventListener('keydown', function(e) {
+    if (e.key === '/' && document.activeElement !== searchInput) {
+      e.preventDefault();
+      searchInput.focus();
+    } else if (e.key === 'Escape' && document.activeElement === searchInput) {
+      searchInput.value = '';
+      render();
+      searchInput.blur();
+    }
   });
 
   // Initial render
